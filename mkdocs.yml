@@ -1,0 +1,246 @@
+site_name: Navio Technical Knowledge Base
+site_description: Technical documentation for the Navio blockchain — protocol, node, RPC, BLSCT, SDK, explorer, and developer guides.
+site_url: https://docs.nav.io/
+repo_url: https://github.com/nav-io/navio-developer-docs
+repo_name: nav-io/navio-developer-docs
+edit_uri: edit/master/docs/
+
+theme:
+    name: material
+    language: en
+    logo: assets/logo.svg
+    favicon: assets/favicon.svg
+    font:
+        text: Inter
+        code: JetBrains Mono
+    palette:
+        - media: "(prefers-color-scheme: dark)"
+          scheme: slate
+          primary: custom
+          accent: custom
+          toggle:
+              icon: material/weather-sunny
+              name: Switch to light mode
+        - media: "(prefers-color-scheme: light)"
+          scheme: default
+          primary: custom
+          accent: custom
+          toggle:
+              icon: material/weather-night
+              name: Switch to dark mode
+    features:
+        - navigation.tabs
+        - navigation.tabs.sticky
+        - navigation.sections
+        - navigation.top
+        - navigation.tracking
+        - navigation.indexes
+        - navigation.footer
+        - navigation.instant
+        - navigation.instant.progress
+        - search.suggest
+        - search.highlight
+        - search.share
+        - content.code.copy
+        - content.code.annotate
+        - content.tabs.link
+        - content.tooltips
+        - toc.follow
+        - header.autohide
+    icon:
+        repo: fontawesome/brands/github
+        admonition:
+            note: octicons/tag-16
+            abstract: octicons/checklist-16
+            info: octicons/info-16
+            tip: octicons/squirrel-16
+            success: octicons/check-16
+            question: octicons/question-16
+            warning: octicons/alert-16
+            failure: octicons/x-circle-16
+            danger: octicons/zap-16
+            bug: octicons/bug-16
+            example: octicons/beaker-16
+            quote: octicons/quote-16
+
+extra_css:
+    - stylesheets/extra.css
+
+extra_javascript:
+    - javascripts/mathjax.js
+    - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+    - javascripts/mermaid.js
+    - https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js
+
+extra:
+    version:
+        provider: mike
+        default: latest
+    social:
+        - icon: fontawesome/brands/github
+          link: https://github.com/nav-io
+        - icon: fontawesome/brands/discord
+          link: https://discord.com/invite/eBQ2QUkVXy
+        - icon: fontawesome/brands/x-twitter
+          link: https://x.com/nav_io
+    analytics:
+        feedback:
+            title: Was this page helpful?
+            ratings:
+                - icon: material/thumb-up-outline
+                  name: Helpful
+                  data: 1
+                  note: Thanks for your feedback!
+                - icon: material/thumb-down-outline
+                  name: Not helpful
+                  data: 0
+                  note: Thanks — please [open an issue](https://github.com/nav-io/navio-developer-docs/issues/new) describing what's missing or wrong.
+
+markdown_extensions:
+    - abbr
+    - admonition
+    - attr_list
+    - def_list
+    - footnotes
+    - md_in_html
+    - tables
+    - toc:
+          permalink: true
+          toc_depth: 4
+    - pymdownx.arithmatex:
+          generic: true
+    - pymdownx.betterem
+    - pymdownx.caret
+    - pymdownx.details
+    - pymdownx.emoji:
+          emoji_index: !!python/name:material.extensions.emoji.twemoji
+          emoji_generator: !!python/name:material.extensions.emoji.to_svg
+    - pymdownx.highlight:
+          anchor_linenums: true
+          line_spans: __span
+          pygments_lang_class: true
+    - pymdownx.inlinehilite
+    - pymdownx.keys
+    - pymdownx.magiclink
+    - pymdownx.mark
+    - pymdownx.smartsymbols
+    - pymdownx.snippets
+    - pymdownx.superfences:
+          custom_fences:
+              - name: mermaid
+                class: mermaid
+                format: !!python/name:pymdownx.superfences.fence_code_format
+    - pymdownx.tabbed:
+          alternate_style: true
+    - pymdownx.tasklist:
+          custom_checkbox: true
+    - pymdownx.tilde
+
+plugins:
+    - search:
+          separator: '[\s​\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+    - awesome-pages
+
+nav:
+    - Home: index.md
+    - Concepts:
+          - concepts/index.md
+          - Navio overview: concepts/overview.md
+          - BLSCT privacy model: concepts/blsct-model.md
+          - Outpoint model: concepts/outpoint.md
+          - Consensus & supply: concepts/consensus.md
+          - Networks: concepts/networks.md
+          - Wallet formats: concepts/wallet-formats.md
+          - Atomic swaps: concepts/atomic-swaps.md
+    - Node Operator:
+          - node/index.md
+          - Install naviod: node/install.md
+          - navio.conf reference: node/configuration.md
+          - Running mainnet / testnet: node/networks.md
+          - Staking: node/staking.md
+          - ElectrumX server: node/electrumx.md
+          - Pruning & reindex: node/pruning.md
+          - Backup & restore: node/backup.md
+          - Upgrading: node/upgrading.md
+          - Security hardening: node/security.md
+          - Monitoring: node/monitoring.md
+    - RPC Reference:
+          - rpc/index.md
+          - BLSCT commands: rpc/blsct.md
+          - Tokens & NFTs: rpc/tokens-nfts.md
+          - Wallet: rpc/categories/wallet.md
+          - Blockchain: rpc/categories/blockchain.md
+          - Network: rpc/categories/network.md
+          - Raw transactions: rpc/categories/rawtransactions.md
+          - Mining & staking: rpc/categories/mining.md
+          - Mempool: rpc/categories/mempool.md
+          - Utility: rpc/categories/util.md
+    - BLSCT Protocol:
+          - blsct/index.md
+          - BLS12-381 curve: blsct/curve.md
+          - Key derivation: blsct/keys.md
+          - Double public key: blsct/double-public-key.md
+          - Output construction: blsct/outputs.md
+          - Output detection: blsct/detection.md
+          - Amount recovery: blsct/amount-recovery.md
+          - Range proofs: blsct/range-proofs.md
+          - Signatures: blsct/signatures.md
+          - Proof-of-Private-Stake (PoPS): blsct/pops.md
+          - Slashing (future work): blsct/slashing.md
+          - Token format: blsct/tokens.md
+          - Transaction format: blsct/transaction.md
+          - Block format: blsct/block.md
+    - SDK (navio-sdk):
+          - sdk/index.md
+          - Quickstart: sdk/quickstart.md
+          - NavioClient: sdk/client.md
+          - Wallet management: sdk/wallet.md
+          - Synchronization: sdk/sync.md
+          - Balances & UTXOs: sdk/balances.md
+          - Sending transactions: sdk/sending.md
+          - Tokens & NFTs: sdk/tokens.md
+          - Database & storage: sdk/database.md
+          - Encryption: sdk/encryption.md
+          - Examples: sdk/examples.md
+          - API reference: sdk/api/README.md
+    - libblsct-bindings:
+          - blsct-lib/index.md
+          - TypeScript / JavaScript:
+                - Installation: blsct-lib/install.md
+                - Primitives: blsct-lib/primitives.md
+                - Keys: blsct-lib/keys.md
+                - Transactions: blsct-lib/transactions.md
+                - Privacy primitives: blsct-lib/privacy.md
+                - Network configuration: blsct-lib/network.md
+                - Memory model: blsct-lib/memory.md
+                - API reference: blsct-lib/api/README.md
+    - Block Explorer (navio-blocks):
+          - explorer/index.md
+          - Architecture: explorer/architecture.md
+          - Self-host guide: explorer/self-host.md
+          - REST API: explorer/api/README.md
+          - Database schema: explorer/database.md
+          - Supply tracking: explorer/supply.md
+          - Peer discovery: explorer/peer-discovery.md
+          - Reindexing: explorer/reindex.md
+          - Customising the frontend: explorer/theming.md
+    - Guides:
+          - guides/index.md
+          - Build a wallet with navio-sdk: guides/sdk-wallet.md
+          - Mint an NFT collection: guides/mint-nft.md
+          - Watch-only audit wallet: guides/audit-wallet.md
+          - Run a staking node on a VPS: guides/staking-vps.md
+          - Atomic swaps walkthrough: guides/atomic-swaps.md
+          - Self-host full stack: guides/self-host-stack.md
+          - Exchange integration: guides/exchange-integration.md
+          - Build and broadcast a raw BLSCT tx: guides/raw-blsct-tx.md
+          - Coin swap (Navcoin → Navio): guides/coin-swap.md
+    - Reference:
+          - reference/index.md
+          - Opcodes: reference/opcodes.md
+          - Error codes: reference/error-codes.md
+          - Network constants: reference/constants.md
+          - Glossary: reference/glossary.md
+          - Changelog: reference/changelog.md
+
+copyright: Copyright &copy; 2026 Navio contributors. Licensed under MIT.

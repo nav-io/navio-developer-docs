@@ -1,0 +1,14 @@
+# Guides
+
+End-to-end tutorials. Each guide is task-shaped — you start empty, follow the steps, and end with a working artefact.
+
+| Guide                                                      | You build                                                              |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [Build a wallet with navio-sdk](sdk-wallet.md)             | Node.js wallet CLI: create, sync, send                                 |
+| [Mint an NFT collection](mint-nft.md)                       | Token collection + NFTs + transfer, from scratch                       |
+| [Build a watch-only audit wallet](audit-wallet.md)         | Exchange-style deposit monitor driven by audit key                     |
+| [Run a staking node on a VPS](staking-vps.md)              | Hardened naviod + navio-staker under runit (non-systemd)                |
+| [Atomic swaps walkthrough](atomic-swaps.md)                | Cross-chain BTC↔NAV HTLC swap + intra-chain NAV↔TOKEN swap             |
+| [Self-host full stack](self-host-stack.md)                 | naviod + ElectrumX + navio-blocks explorer, docker-compose              |
+| [Exchange integration](exchange-integration.md)            | Deposit detection, cold-storage pattern, withdrawal signer              |
+| [Build and broadcast a raw BLSCT tx](raw-blsct-tx.md)       | Hand-rolled `createblsctrawtransaction` → fund → sign → broadcast       |

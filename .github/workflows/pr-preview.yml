@@ -1,0 +1,61 @@
+name: PR preview build
+
+on:
+    pull_request:
+        branches: [master]
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: '3.11'
+
+            - run: pip install -r requirements.txt
+
+            - name: Build MkDocs (non-strict, fast)
+              run: mkdocs build
+
+            - name: Check for broken internal links
+              run: |
+                  # strict mode would fail on missing auto-gen sections in PRs; run explicit link check.
+                  python3 -c "
+                  import pathlib, re, sys
+                  root = pathlib.Path('site')
+                  broken = []
+                  for html in root.rglob('*.html'):
+                      t = html.read_text()
+                      for m in re.finditer(r'href=\"([^\"#?]+)\\.md', t):
+                          broken.append((str(html), m.group(0)))
+                  if broken:
+                      for b in broken[:20]:
+                          print(b)
+                      print(f'{len(broken)} raw .md links remain — run the auto-fetch scripts locally')
+                      sys.exit(1)
+                  "
+              continue-on-error: true
+
+            - name: Upload preview
+              uses: actions/upload-artifact@v4
+              with:
+                  name: pr-docs-${{ github.event.pull_request.number }}
+                  path: site/
+                  retention-days: 7
+
+            - name: Comment PR with download link
+              uses: actions/github-script@v7
+              with:
+                  script: |
+                      github.rest.issues.createComment({
+                          issue_number: context.payload.pull_request.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          body: `📘 Docs preview built. Download artifact **pr-docs-${context.payload.pull_request.number}** from the workflow run to inspect HTML.`
+                      });

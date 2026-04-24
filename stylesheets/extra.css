@@ -1,0 +1,89 @@
+/* Navio palette — cyberpunk navy / neon cyan, matching navio-blocks frontend */
+
+:root {
+    --md-primary-fg-color: #0a0e27;
+    --md-primary-fg-color--light: #1a1f3a;
+    --md-primary-fg-color--dark: #05081a;
+    --md-accent-fg-color: #00d4ff;
+    --md-accent-fg-color--transparent: rgba(0, 212, 255, 0.12);
+}
+
+[data-md-color-scheme="slate"] {
+    --md-default-bg-color: #0a0e27;
+    --md-default-bg-color--light: #10152e;
+    --md-code-bg-color: #111735;
+    --md-code-fg-color: #e6edff;
+    --md-typeset-a-color: #00d4ff;
+    --md-footer-bg-color: #05081a;
+    --md-footer-bg-color--dark: #05081a;
+}
+
+[data-md-color-scheme="default"] {
+    --md-typeset-a-color: #005ea2;
+}
+
+/* Neon glow accent on H1 / hero title */
+.md-typeset h1 {
+    background: linear-gradient(135deg, #00d4ff 0%, #7b5cff 60%, #ff5cf0 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+}
+
+/* Cards on landing page */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > :is(ol,ul) > li {
+    border: 1px solid rgba(0, 212, 255, 0.18);
+    border-radius: 10px;
+    transition: border-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+    background: var(--md-code-bg-color);
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+    border-color: rgba(0, 212, 255, 0.55);
+    transform: translateY(-2px);
+    box-shadow: 0 0 24px rgba(0, 212, 255, 0.12);
+}
+
+/* Codeblocks — monospace tweaks */
+.md-typeset code,
+.md-typeset pre {
+    font-feature-settings: "liga" 0, "calt" 0;
+}
+
+/* Tables */
+.md-typeset table:not([class]) {
+    border-collapse: collapse;
+    font-size: 0.82rem;
+}
+
+.md-typeset table:not([class]) th {
+    background: rgba(0, 212, 255, 0.06);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+/* Admonition tweaks */
+.md-typeset .admonition,
+.md-typeset details {
+    border-radius: 8px;
+    font-size: 0.78rem;
+}
+
+/* Source-highlight subtle */
+.md-typeset .highlight pre > code {
+    background: transparent;
+}
+
+/* Navigation tabs */
+.md-tabs {
+    background-color: var(--md-primary-fg-color--dark);
+}
+
+/* Logo slight glow */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+    filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.35));
+}

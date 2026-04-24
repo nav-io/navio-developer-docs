@@ -1,0 +1,23 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="-10 10 840 630" width="950" height="850">
+	<defs>
+		<clipPath clipPathUnits="userSpaceOnUse" id="cp1">
+			<path d="m-892-572h4646v1800h-4646z"/>
+		</clipPath>
+		<linearGradient id="g1" x2="1" gradientUnits="userSpaceOnUse" gradientTransform="matrix(816.185,0,0,79.604,.52,328.96)">
+			<stop offset="0" stop-color="#ec1ec6"/>
+			<stop offset="1" stop-color="#1d8ff9"/>
+		</linearGradient>
+	</defs>
+	<style>
+		.s0 { fill: #ffffff } 
+		.s1 { fill: url(#g1) } 
+	</style>
+	<g id="Clip-Path" clip-path="url(#cp1)">
+		<g id="Layer">
+			<path id="Layer" class="s0" d="m157.8 40.3c0-22 17.8-39.8 39.8-39.8 22 0 39.8 17.8 39.8 39.8v583.1c0 22-17.8 39.8-39.8 39.8-22 0-39.8-17.8-39.8-39.8z"/>
+			<path id="Layer" class="s0" d="m590.2 40.1c0-22 17.8-39.8 39.8-39.8 22 0 39.8 17.8 39.8 39.8v578.1c0 22-17.8 39.8-39.8 39.8-22 0-39.8-17.8-39.8-39.8z"/>
+			<path id="Layer" class="s1" d="m40.3 368.8c-22 0-39.8-17.9-39.8-39.8 0-22 17.8-39.8 39.8-39.8h736.6c22 0 39.8 17.8 39.8 39.8 0 21.9-17.8 39.8-39.8 39.8z"/>
+			<path id="Layer" class="s0" d="m167.9 64.8c-13-17.7-9.3-42.6 8.4-55.7 17.6-13 42.5-9.3 55.6 8.4l425.4 574.9c13.1 17.6 9.4 42.6-8.3 55.6-17.7 13.1-42.6 9.4-55.7-8.3z"/>
+		</g>
+	</g>
+</svg>

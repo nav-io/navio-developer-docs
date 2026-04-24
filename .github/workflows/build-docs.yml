@@ -1,0 +1,116 @@
+name: Build & Deploy docs
+
+on:
+    push:
+        branches: [master]
+    schedule:
+        # Nightly 04:13 UTC (avoids the 00:00 / 00:30 traffic spike)
+        - cron: '13 4 * * *'
+    workflow_dispatch:
+        inputs:
+            sdk_ref:
+                description: 'navio-sdk ref (tag or branch)'
+                required: false
+            blsct_ref:
+                description: 'navio-blsct ref'
+                required: false
+            core_ref:
+                description: 'navio-core ref'
+                required: false
+            blocks_ref:
+                description: 'navio-blocks ref'
+                required: false
+
+concurrency:
+    group: pages
+    cancel-in-progress: false
+
+permissions:
+    contents: write
+    pages: write
+    id-token: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout navio-developer-docs
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.11'
+
+            - name: Set up Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Install Python deps
+              run: pip install -r requirements.txt
+
+            - name: Install jq (for release fetching)
+              run: sudo apt-get update && sudo apt-get install -y jq
+
+            - name: Fetch BLSCT RPC reference
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  # Clone navio-core only for extraction (no build required).
+                  ref="${{ github.event.inputs.core_ref }}"
+                  git clone --depth 1 ${ref:+--branch "$ref"} https://github.com/nav-io/navio-core.git /tmp/navio-core
+                  {
+                      cat <<'H'
+                  # BLSCT commands
+
+                  All Navio-specific JSON-RPC commands. Auto-generated from [`nav-io/navio-core`](https://github.com/nav-io/navio-core) source — `src/blsct/wallet/rpc.cpp`, `src/blsct/tokens/rpc.cpp`, `src/blsct/range_proof/rpc.cpp`, and BLSCT-related entries in `src/wallet/rpc/backup.cpp`.
+
+                  H
+                      python3 scripts/extract-blsct-rpc.py /tmp/navio-core
+                  } > docs/rpc/blsct.md
+
+            - name: Fetch SDK TypeDoc
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: scripts/fetch-sdk-docs.sh ${{ github.event.inputs.sdk_ref }}
+              continue-on-error: true
+
+            - name: Fetch navio-blsct TypeDoc
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: scripts/fetch-blsct-docs.sh ${{ github.event.inputs.blsct_ref }}
+              continue-on-error: true
+
+            - name: Fetch explorer OpenAPI → Markdown
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: scripts/fetch-explorer-api.sh ${{ github.event.inputs.blocks_ref }}
+              continue-on-error: true
+
+            - name: Fetch release notes
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: scripts/fetch-core-release.sh
+              continue-on-error: true
+
+            - name: Build MkDocs site
+              run: mkdocs build --strict
+
+            - name: Upload Pages artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: ./site
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - name: Deploy to GitHub Pages
+              id: deployment
+              uses: actions/deploy-pages@v4
