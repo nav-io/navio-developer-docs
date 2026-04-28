@@ -46,7 +46,7 @@
 
 **Pedersen commitment** — `C = v·H + γ·G` — hides the amount `v` with the blinding factor `γ`. Binding and hiding. See [BLSCT privacy model](../concepts/blsct-model.md#hidden-amounts-pedersen-commitments).
 
-**PoPS** — Proof-of-Private-Stake. Consensus algorithm on every Navio network. Validators prove stake eligibility via a modified RingCT 3.0 set-membership proof + Bulletproofs++ range proof, without revealing the staking UTXO, the amount, or linkage across blocks. See [BLSCT → PoPS](../blsct/pops.md).
+**PoPS** — Proof-of-Private-Stake. Consensus algorithm on Navio's current BLSCT chains (mainnet, testnet, `blsctregtest`). Validators prove stake eligibility via a modified RingCT 3.0 set-membership proof + Bulletproofs++ range proof, without revealing the staking UTXO, the amount, or linkage across blocks. See [BLSCT → PoPS](../blsct/pops.md).
 
 **Set element image ($\varphi$)** — $\varphi = h_3^m g_2^f$, a re-randomised copy of the staker's Pedersen commitment under per-block-rebased generators. Navio-specific contribution over RingCT 3.0. DDH-unlinkable across blocks.
 
@@ -86,6 +86,6 @@
 
 **View key $v$** — Master secret scalar that enables scanning for incoming outputs. Part of the audit key. Does *not* enable spending.
 
-**View tag $\tau$** — 1-byte hint stored on each output, derived from the shared secret. Lets wallets discard ~255/256 of outputs after a single cheap hash check during sync.
+**View tag $\tau$** — 2-byte hint stored on each output, derived from the shared secret. Lets wallets discard almost all outputs after a single cheap hash check during sync.
 
-**XOR-stream amount encryption** — Amounts on BLSCT outputs are stored XORed with a keystream derived from the shared-secret-derived nonce. Receiver reverses this on decrypt. See [amount recovery](../blsct/amount-recovery.md).
+**Amount recovery** — BLSCT outputs do not carry a separate ciphertext blob for the amount. The receiver recovers the amount and memo from the Bulletproofs+ proof using the shared nonce and the proof scalars. See [amount recovery](../blsct/amount-recovery.md).

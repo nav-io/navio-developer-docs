@@ -29,9 +29,9 @@
 | Curve                 | BLS12-381. Pairings enable signature aggregation and balance proofs.                                                            |
 | Range proofs          | Bulletproofs++ prove each output's amount is in $[0, 2^{64})$ without revealing the value.                                                          |
 | Signatures            | BLS aggregated signatures for transactions, balance proofs, and signed messages.
-| Consensus             | **Proof-of-Private-Stake (PoPS)** on every network. 4 NAV block reward per minute, 120-second target block time, 10,000 NAV minimum stake (100 NAV on regtest). See [BLSCT → PoPS](../blsct/pops.md). |
+| Consensus             | Mainnet and testnet are BLSCT / PoPS networks after a short bootstrap PoW phase. Mainnet PoPS runs at 120-second spacing with 8 NAV steady-state rewards; testnet runs at 60-second spacing with 4 NAV rewards. Plain signet / regtest are non-BLSCT in the current chainparams; local BLSCT testing uses `-blsctregtest`. See [BLSCT → PoPS](../blsct/pops.md). |
 | Outpoint identifier   | Single `output_hash` (32 bytes). Inputs reference outputs directly, not `txid:vout`.                                                                |
-| Addresses             | Bech32m with HRP `nav` (mainnet) or `tnav` (testnet). Encoded double public key, not a script hash.                                                 |
+| Addresses             | Bech32m-encoded double public keys. Current node params use HRP `nav` on mainnet and `tnv` on testnet.                                              |
 | Tokens and NFTs       | Native to BLSCT. Confidential amounts, on-chain metadata, unified inputs/outputs/commitments. See the [RPC reference](../rpc/tokens-nfts.md).       |
 | Community fund        | **Removed** in the mainnet transition.                                 |
 

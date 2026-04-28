@@ -48,7 +48,7 @@ dpk.toHex();                 // 192 hex chars
 dpk.toBytes();               // Uint8Array(96)
 
 // Parse a bech32m address back
-const fromAddr = DoublePublicKey.fromBech32m('tnav1...', 'testnet');
+const fromAddr = DoublePublicKey.fromBech32m('tnv1...', 'testnet');
 ```
 
 !!! warning "Browser bech32m limitation"

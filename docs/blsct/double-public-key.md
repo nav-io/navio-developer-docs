@@ -85,7 +85,7 @@ const address = keyManager.getSubAddressBech32m(
     { account: 0, address: 0 },
     'testnet'
 );
-console.log(address);      // tnav1…
+console.log(address);      // tnv1…
 ```
 
 See the [navio-blsct library → keys](../blsct-lib/keys.md#doublepublickey) for the low-level API.

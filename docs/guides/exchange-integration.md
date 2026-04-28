@@ -165,7 +165,7 @@ async function onReorg(commonAncestorHeight) {
 }
 ```
 
-Require high confirmations (≥ 30) before making funds withdrawable to external wallets to minimise the chance of a reorg surface.
+Require high confirmations (≥ 15) before making funds withdrawable to external wallets to minimise the chance of a reorg surface.
 
 ## Withdrawal flow
 

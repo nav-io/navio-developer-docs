@@ -1,35 +1,42 @@
 # Network constants
 
-Cross-reference table. Authoritative values live in [`src/chainparams.cpp`](https://github.com/nav-io/navio-core/blob/master/src/chainparams.cpp) and [`src/consensus/params.h`](https://github.com/nav-io/navio-core/blob/master/src/consensus/params.h) in navio-core — consult them for the release you target.
+Cross-reference table. Authoritative core values live in [`src/kernel/chainparams.cpp`](https://github.com/nav-io/navio-core/blob/master/src/kernel/chainparams.cpp), [`src/chainparamsbase.cpp`](https://github.com/nav-io/navio-core/blob/master/src/chainparamsbase.cpp), and [`src/consensus/params.h`](https://github.com/nav-io/navio-core/blob/master/src/consensus/params.h) in navio-core — consult them for the release you target.
 
 ## Ports
 
-| Network | P2P default | RPC default | ElectrumX TCP / SSL / WSS            |
-| ------- | ----------- | ----------- | ------------------------------------ |
-| mainnet | 48470       | 48471       | 50001 / 50002 / 50004                |
-| testnet | 33670 (SDK P2P: 43670) | 33677 | 40001 / 40002 / 40004            |
-| signet  | 33671       | 33678       | (per signet)                         |
-| regtest | 18444       | 18443       | n/a                                  |
+| Network      | P2P default              | RPC default | ElectrumX TCP / SSL / WSS |
+| ------------ | ------------------------ | ----------- | ------------------------- |
+| mainnet      | 48470                    | 48471       | 50001 / 50002 / 50004     |
+| testnet      | 33670 (SDK P2P: 43670)  | 33677       | 40001 / 40002 / 40004     |
+| signet       | 38333                    | 48487       | (per signet)              |
+| regtest      | 18444                    | 48486       | n/a                       |
+| blsctregtest | 18444                    | 48484       | n/a                       |
 
 ## P2P wire magic
 
-| Network | Magic bytes (hex)  |
-| ------- | ------------------ |
-| mainnet | `bd 5f c3 00`      |
-| testnet | `1c 03 bb 83`      |
-| signet  | (per signet)       |
-| regtest | `fa bf b5 da`      |
+| Network      | Magic bytes (hex) |
+| ------------ | ----------------- |
+| mainnet      | `bd 5f c3 00`     |
+| testnet      | `1c 03 bb 83`     |
+| signet       | (per signet)      |
+| regtest      | `fd bf 9f fb`     |
+| blsctregtest | `fd bf 9f fb`     |
 
 Override via `P2P_MESSAGE_MAGIC_HEX` in the [navio-blocks env](../explorer/self-host.md#environment-variables).
 
 ## Address HRPs (bech32m)
 
-| Network | HRP      | Example                        |
-| ------- | -------- | ------------------------------ |
-| mainnet | `nav`    | `nav1q9rh…`                    |
-| testnet | `tnav`   | `tnav1q9rh…`                   |
-| signet  | `tnav`   | same as testnet                 |
-| regtest | `tnavrt` | `tnavrt1q9rh…`                 |
+Core `naviod` chainparams currently expose these BLSCT HRPs:
+
+| Network      | Core HRP | Example        | Notes |
+| ------------ | -------- | -------------- | ----- |
+| mainnet      | `nav`    | `nav1q9rh…`    | BLSCT active |
+| testnet      | `tnv`    | `tnv1q9rh…`    | BLSCT active |
+| signet       | `nav`    | n/a            | Plain signet is not a BLSCT chain |
+| regtest      | `rnv`    | n/a            | Plain regtest is not a BLSCT chain |
+| blsctregtest | `rnv`    | `rnv1q9rh…`    | BLSCT-active local dev chain |
+
+Standalone `navio-blsct` exposes different Signet / Regtest HRPs (`snv`, `rnav`) in `src/blsct/key_io.h`; see [BLSCT lib → network configuration](../blsct-lib/network.md).
 
 ## Denomination
 
@@ -42,67 +49,68 @@ Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
 
 ### Mainnet
 
-| Parameter                         | Value                                                          |
-| --------------------------------- | -------------------------------------------------------------- |
-| Activation                        | Navcoin block height 10,500,000 (estimated end of June 2026)   |
-| Initial supply                    | 81,743,678 NAV (migrated from Navcoin)                         |
-| Max supply                        | **Uncapped** — no fixed ceiling                                 |
-| Consensus                         | **PoPS** (Proof-of-Private-Stake)                              |
-| `nBLSCTBlockReward`               | **8 NAV** (`2 * COIN * (nPosTargetSpacing / 30)`)              |
-| `nPosTargetSpacing`               | **120 s** (1-minute blocks)                                     |
-| `nPosTargetTimespan`              | 1800 s (retarget every 30 blocks)                              |
-| `nPePoSMinStakeAmount`            | 10,000 NAV                                                     |
-| `posLimit`                        | `0x00000000ffffffff…`                                           |
-| Max block size                    | 4 MB                                                            |
-| BLSCT                             | Mandatory for all transactions                                  |
-| Community fund                    | Removed (legacy balance burned at genesis)                      |
+| Parameter                         | Value |
+| --------------------------------- | ----- |
+| Consensus                         | BLSCT + PoPS |
+| `nLastPOWHeight`                  | 100 |
+| `fOnlyFirstPoWBlockHasReward`     | `true` |
+| `nBLSCTFirstBlockReward`          | 81,743,678 NAV |
+| PoW subsidy at heights `2..100`   | 0 NAV |
+| `nBLSCTBlockReward`               | 8 NAV |
+| `nPosTargetSpacing`               | 120 s |
+| `nPosTargetTimespan`              | 3600 s |
+| `nPePoSMinStakeAmount`            | 10,000 NAV |
+| `posLimit`                        | `0x00000000ffffffff…` |
+| Max block size                    | 4 MB |
+| BLSCT                             | Mandatory for transactions on this chain |
 
 ### Testnet
 
-| Parameter                         | Value                                  |
-| --------------------------------- | -------------------------------------- |
-| Consensus                         | PoPS from genesis                      |
-| `nBLSCTBlockReward`               | 4 NAV                                  |
-| `nPosTargetSpacing`               | 60 s                                   |
-| `nPosTargetTimespan`              | 1800 s                                 |
-| `nPePoSMinStakeAmount`            | 10,000 NAV                             |
-| `posLimit`                        | `0x0000ffffffffffff…` (easier)         |
-| Max supply                        | Uncapped                                |
+| Parameter                         | Value |
+| --------------------------------- | ----- |
+| Consensus                         | BLSCT + PoPS |
+| `nLastPOWHeight`                  | 1000 |
+| `nBLSCTFirstBlockReward`          | 75,000,000 NAV |
+| `nBLSCTBlockReward`               | 4 NAV |
+| `nPosTargetSpacing`               | 60 s |
+| `nPosTargetTimespan`              | 1800 s |
+| `nPePoSMinStakeAmount`            | 10,000 NAV |
+| `fPoPSHardened`                   | `false` |
+| `posLimit`                        | `0x0000ffffffffffff…` (easier) |
 
-### Signet / Regtest
+### Signet / Regtest / BLSCT Regtest
 
-| Parameter                         | Value                                  |
-| --------------------------------- | -------------------------------------- |
-| Consensus                         | PoPS                                   |
-| `nPePoSMinStakeAmount` (regtest)  | **100 NAV**                            |
-| `nPePoSMinStakeAmount` (signet)   | 10,000 NAV                             |
-| Other params                      | Match testnet defaults                  |
+| Network      | Consensus        | Notes |
+| ------------ | ---------------- | ----- |
+| signet       | non-BLSCT signet | `fBLSCT = false`; `nDefaultPort = 38333` |
+| regtest      | plain regtest    | `fBLSCT = false`; instant local mining |
+| blsctregtest | BLSCT + PoPS     | `nPePoSMinStakeAmount = 100 NAV`, `nLastPOWHeight = 25000`, `nBLSCTBlockReward = 4 NAV`, `nPosTargetSpacing = 60 s` |
 
 ## BIP-like constants
 
-| Constant                    | Value                           |
-| --------------------------- | ------------------------------- |
-| `MAX_BLOCK_SIZE` (mainnet)  | 4,000,000 bytes                 |
+| Constant                    | Value |
+| --------------------------- | ----- |
+| `MAX_BLOCK_SIZE` (BLSCT chains) | 4,000,000 bytes |
 | `MAX_BLOCK_WEIGHT`          | 16,000,000 (after post-SegWit weighting) |
-| `COIN`                      | 100,000,000 sats / NAV          |
-| `COINBASE_MATURITY`         | 100 blocks                      |
-| `DEFAULT_RPC_PORT`          | 33677                           |
-| `DEFAULT_P2P_PORT`          | 33670                           |
+| `COIN`                      | 100,000,000 sats / NAV |
+| `COINBASE_MATURITY`         | 100 blocks |
 
 ## Staking (PoPS)
 
-| Parameter                         | Value                                                                  |
-| --------------------------------- | ---------------------------------------------------------------------- |
-| Minimum stake (mainnet/testnet/signet) | 10,000 NAV                                                       |
-| Minimum stake (regtest)           | 100 NAV                                                                |
-| Stake commitment set cap          | $N = 1024$ (`SetMemProofSetup::N`, padded to next power of two)         |
-| Minimum set size                  | 2 (smaller rejected by consensus to avoid de-anonymisation)             |
-| Coinstake marker                  | `vtx[1].vout[0]` is zero-value nonstandard                              |
-| PoPS proof                        | set-membership (modified RingCT 3.0) + Bulletproofs++ range proof       |
+Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
+
+| Parameter                         | Value |
+| --------------------------------- | ----- |
+| Minimum stake (mainnet/testnet)   | 10,000 NAV |
+| Minimum stake (`blsctregtest`)    | 100 NAV |
+| Stake commitment set cap          | $N = 1024$ (`SetMemProofSetup::N`, padded to next power of two) |
+| Minimum set size                  | 2 (smaller rejected by consensus to avoid de-anonymisation) |
+| Coinstake marker                  | `vtx[1].vout[0]` is zero-value nonstandard |
+| PoPS proof                        | set-membership (modified RingCT 3.0) + Bulletproofs++ range proof |
 | Entropy bindings                  | $\eta_{\text{FS}} = H(\text{prevHash} \Vert \text{prevStakeModifier})$; $\eta_\varphi = H(\text{prevHeight} \Vert \text{prevStakeModifier} \Vert \text{TX\_NO\_WITNESS(vtx)})$ |
-| `MODIFIER_INTERVAL_RATIO`         | 3                                                                      |
-| Kernel hash                       | $H(\text{prevTime} \Vert \text{stakeModifier} \Vert \text{time})$        |
-| Minimum-value threshold           | $v_{\min} = \lfloor \text{KH} / T_{\text{pos}} \rfloor$                  |
+| `MODIFIER_INTERVAL_RATIO`         | 3 |
+| Kernel hash                       | $H(\text{prevTime} \Vert \text{stakeModifier} \Vert \text{time})$ |
+| Minimum-value threshold           | $v_{\min} = \lfloor \text{KH} / T_{\text{pos}} \rfloor$ |
 
 ## Curve & cryptographic
 
@@ -146,4 +154,4 @@ Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
 | macOS   | `~/Library/Application Support/Navio/`                |
 | Windows | `%APPDATA%\Navio\`                                    |
 
-Testnet under `testnet5/`, signet under `signet/`, regtest under `regtest/`.
+Testnet under `testnet6/`, signet under `signet/`, regtest under `regtest/`, and BLSCT regtest under `blsctregtest/`.

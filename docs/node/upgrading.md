@@ -44,10 +44,10 @@ Operational checklist:
 
 ## Upgrading across testnet resets
 
-When a testnet is cut (e.g., `testnet5` → `testnet6`):
+When a testnet is cut and the datadir suffix changes:
 
 1.  Stop `naviod`, `navio-staker`, and any wallet integrations.
-2.  Move or delete the old testnet datadir: `mv ~/.navio/testnet5 ~/.navio/testnet5.bak`.
+2.  Move or delete the old testnet datadir, for example: `mv ~/.navio/testnet6 ~/.navio/testnet6.bak`.
 3.  Update any hardcoded seed nodes in `navio.conf`.
 4.  Start the new release.
 5.  Resync. Old testnet wallets are not compatible — regenerate as needed for testing.

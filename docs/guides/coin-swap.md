@@ -25,7 +25,7 @@ The derived deposit address is deterministic from your EVM address + chain id + 
 ### 2. wNAV → NAVIO (native)
 
 1. On bridge.nav.io → **Withdraw**.
-2. Provide a Navio recipient address. **It must be a bech32m address starting with `nav1…`** — that's the Navio mainnet HRP. Legacy Navcoin `N…` addresses and testnet `tnav1…` addresses are rejected.
+2. Provide a Navio recipient address. **It must be a bech32m address starting with `nav1…`** — that's the Navio mainnet HRP. Legacy Navcoin `N…` addresses and testnet `tnv1…` addresses are rejected.
 3. The UI calls `burnWithNote(amount, "nav1…")` on the wNAV contract. The tokens are destroyed and the note carries the destination address.
 4. After enough BSC confirmations for the bridge to consider the burn final, the bridge sends a native NAVIO transaction from its payout wallet to the bech32m address carried in the burn note.
 

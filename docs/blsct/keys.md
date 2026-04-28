@@ -66,10 +66,11 @@ Account indexing convention (by Navio SDK and navio-core):
 
 ## Per-output keys
 
-For each output sent to a sub-address, the sender picks a random scalar $r \in \mathbb{F}_r$ (the *ephemeral* / blinding factor, derived from the sender's blinding key $b$ and a per-output counter) and derives (see `src/blsct/wallet/helpers.cpp`):
+For each output sent to a sub-address, the sender picks a random scalar $r \in \mathbb{F}_r$ (the *ephemeral* / blinding factor, derived from the sender's blinding key $b$ and a per-output counter) and derives:
 
--   **Ephemeral public key** (a.k.a. blinding key) $R = r \cdot g_1$ — stored in the output.
--   **Shared point** $\eta = R \cdot v = r \cdot V_{a,i} = (r v) \cdot g_1$ — the Diffie–Hellman point shared between sender (who knows $r$) and receiver (who knows $v$). Computed by `CalculateNonce(blindingKey, viewKey)`.
+-   **Ephemeral public key** $R = r \cdot g_1$ — stored in the output as `ephemeralKey`.
+-   **Stored blinding helper** $B = r \cdot S_{a,i}$ — stored in the output as `blindingKey`.
+-   **Shared point** $\eta = v \cdot B = r \cdot V_{a,i}$ — the Diffie–Hellman point shared between sender (who knows $r$) and receiver (who knows $v$). In the wallet code path this is what `CalculateNonce(blindingKey, viewKey)` computes.
 -   **View tag** $\tau = \text{SHA256}\bigl(R \cdot v\bigr).\text{GetUint64}(0) \,\&\, \text{0xFFFF}$ — a **2-byte** (16-bit) optimisation for scanning. Computed by `CalculateViewTag`.
 -   **Stealth spend pubkey** $S' = S_{a,i} + \text{H}_s(\eta, \text{salt}{=}0) \cdot g_1$, where $\text{H}_s(\cdot, \text{salt}{=}0)$ is `MclG1Point::GetHashWithSalt(0)` applied to the shared point $\eta$. Spending this output requires the stealth private scalar
 
@@ -79,13 +80,13 @@ For each output sent to a sub-address, the sender picks a random scalar $r \in \
 
     computed in `CalculatePrivateSpendingKey` (where $m_{a,i}$ is the sub-address tweak from the previous section). The corresponding pubkey $s' \cdot g_1$ is what the output stores as the stealth spending key.
 
-The sender stores in the output: $R$ (the blinding key), $\tau$ (view tag), the stealth spend pubkey, the Pedersen commitment $C = v_{\text{amt}} \cdot G + \gamma \cdot H$ (see [range proofs](range-proofs.md) for the commitment form), the range proof (which embeds the encrypted amount and memo in the proof's $\alpha_{\text{hat}}$ and $\tau_x$ scalars — see [amount recovery](amount-recovery.md)), and the token id.
+The sender stores in the output: $R$ (`ephemeralKey`), $B$ (`blindingKey`), $\tau$ (view tag), the stealth spend pubkey, the Pedersen commitment $C = v_{\text{amt}} \cdot G + \gamma \cdot H$ (see [range proofs](range-proofs.md) for the commitment form), the range proof (which embeds the encrypted amount and memo in the proof's $\alpha_{\text{hat}}$ and $\tau_x$ scalars — see [amount recovery](amount-recovery.md)), and the token id.
 
 ## Receiver-side recovery
 
 Using $v$ and the look-ahead set of $S_{a,i}$ for each tracked sub-address, the receiver tests every output on the chain:
 
-1.  Compute the shared point $\eta_{\text{test}} = v \cdot R$.
+1.  Compute the shared point $\eta_{\text{test}} = v \cdot B$.
 2.  Compute $\tau_{\text{test}} = \text{SHA256}(\eta_{\text{test}}).\text{GetUint64}(0) \,\&\, \text{0xFFFF}$.
 3.  If $\tau_{\text{test}} \ne \tau$ (the stored view tag), skip — not this wallet's output.
 4.  Otherwise, compute $S_{a,i}^{\text{derived}} = S'_{\text{stored}} - \text{H}_s(\eta, \text{salt}{=}0) \cdot g_1$ and test it against every tracked sub-address spend pubkey (see `CalculateHashId` in `helpers.cpp`). On match, this output is ours.

@@ -1,6 +1,6 @@
 # Staking
 
-Navio's staking produces **Proof-of-Private-Stake (PoPS)** blocks on every network. Operators lock a portion of wallet funds as a Pedersen-committed stake; eligible hidden-amount commitments participate in the stake lottery and mint blocks when their ZK eligibility proof verifies.
+Navio's staking produces **Proof-of-Private-Stake (PoPS)** blocks on the current BLSCT chains: **mainnet**, **testnet**, and **blsctregtest**. Operators lock a portion of wallet funds as a Pedersen-committed stake; eligible hidden-amount commitments participate in the stake lottery and mint blocks when their ZK eligibility proof verifies.
 
 Full protocol details (math, crypto proofs, verifier equations): [BLSCT → Proof-of-Private-Stake](../blsct/pops.md).
 
@@ -36,14 +36,14 @@ BLSCT verification is heavier than transparent signatures: every block carries B
 
 - **Sustained load is low.** After IBD, a synced node running `navio-staker` typically sits at < 10 % CPU between slots, spiking for a few hundred ms when validating a new block or assembling a candidate template. Provision for peak, not mean.
 - **Disk growth.** Unpruned mainnet grows with chain size; `prune=N` caps block-file usage at roughly `N` MiB but chainstate still grows with UTXO count.
-- **More CPU cores help validation, not win rate.** PoPS is stake-weighted: extra compute does not increase the probability of minting a block. But more cores *do* shorten IBD (parallel range-proof + view-tag batches), reduce per-block validation latency, and give you headroom when a busy block with many aggregated range proofs arrives. A fast-to-validate node also finishes its own candidate templates quicker, reducing the stale-template risk on busy networks. GPUs / ASICs do not apply — the parallel work is on general-purpose BLS12-381 pairings, not a hash function.
+- **More CPU cores help validation, not win rate.** PoPS is stake-weighted: extra compute does not increase the probability of minting a block. But more cores *do* shorten IBD (parallel range-proof + view-tag batches), reduce per-block validation latency, and give you headroom when a busy block with many BLSCT outputs arrives. A fast-to-validate node also finishes its own candidate templates quicker, reducing the stale-template risk on busy networks. GPUs / ASICs do not apply — the parallel work is on general-purpose BLS12-381 pairings, not a hash function.
 - **Home connection is fine** as long as uptime is solid. A VPS is mostly about availability, not throughput.
 - Tighter testnet-only sizing and a step-by-step VPS bringup: [Run a staking node on a VPS](../guides/staking-vps.md#vps-sizing).
 
 ## Requirements
 
 -   `naviod` fully synced to chain tip, with RPC enabled.
--   A wallet holding **≥ 10,000 NAV** locked as stake (minimum from `nPePoSMinStakeAmount`; 100 NAV on regtest).
+-   A wallet holding **≥ 10,000 NAV** locked as stake on mainnet / testnet (`100 NAV` on `blsctregtest`).
 -   Wallet unlocked for staking (`walletpassphrase <pw> <timeout> true` — third argument is staking-only unlock).
 
 No stake-age minimum. Newly locked outputs become eligible as soon as they are confirmed and present in the staked commitment set.
@@ -81,7 +81,11 @@ Releases 5,000 NAV from staking back to regular spendable UTXOs. Consensus enfor
 
 ## Rewards
 
-Rewards flow to sub-addresses in the staking pool (`account = -2`). The reward is **4 NAV per minute** on every network (`nBLSCTBlockReward = 2 * COIN * (nPosTargetSpacing / 30) = 2 * COIN * (60 / 30)`).
+Rewards flow to sub-addresses in the staking pool (`account = -2`).
+
+-   **Mainnet:** `nBLSCTBlockReward = 8 NAV` with `nPosTargetSpacing = 120 s`.
+-   **Testnet / blsctregtest:** `nBLSCTBlockReward = 4 NAV` with `nPosTargetSpacing = 60 s`.
+-   **Height 1 on BLSCT chains:** special initial supply mint via `nBLSCTFirstBlockReward`.
 
 Inspect reward transactions with:
 
@@ -91,9 +95,9 @@ navio-cli -testnet listblscttransactions "*" 100 0 true
 
 filter for `category: "stake"`.
 
-## PoPS on both networks
+## PoPS on BLSCT chains
 
-Every block on every network is a PoPS block. The coinstake transaction does **not** reference a specific staked UTXO; `block.posProof` contains a set-membership proof + range proof that together show "one of these staked commitments is mine *and* my hidden stake satisfies the block's eligibility threshold" — without revealing which commitment or its amount. Operational commands (`stakelock`, `stakeunlock`, `navio-staker`) are identical everywhere. Protocol details: [BLSCT → PoPS](../blsct/pops.md).
+On mainnet, testnet, and `blsctregtest`, the coinstake transaction does **not** reference a specific staked UTXO; `block.posProof` contains a set-membership proof + range proof that together show "one of these staked commitments is mine *and* my hidden stake satisfies the block's eligibility threshold" — without revealing which commitment or its amount. Plain `signet` and plain `regtest` do not use PoPS in the current chainparams. Protocol details: [BLSCT → PoPS](../blsct/pops.md).
 
 ## Cold staking
 

@@ -14,14 +14,13 @@ For each block the indexer records:
 
 See [`navio-blocks` README](https://github.com/nav-io/navio-blocks/blob/master/README.md) for the reference implementation of these rules.
 
-## Network regimes (both mainnet and testnet use PoPS)
+## Network regimes
 
 | Network | Block reward | Min stake                | Notes                                                 |
 | ------- | ------------ | ------------------------ | ----------------------------------------------------- |
-| mainnet | 8 NAV        | 10,000 NAV               | Initial supply 81,743,678 NAV migrated from Navcoin   |
-| testnet | 4 NAV        | 10,000 NAV               | Includes a genesis-time bootstrap output seeding the first staker set |
-| signet  | 4 NAV        | 10,000 NAV               | —                                                     |
-| regtest | 4 NAV        | 100 NAV                  | Small minimum for local testing                       |
+| mainnet | 8 NAV        | 10,000 NAV               | Height 1 mints `nBLSCTFirstBlockReward`; bootstrap PoW then PoPS |
+| testnet | 4 NAV        | 10,000 NAV               | Height 1 mints `nBLSCTFirstBlockReward`; bootstrap PoW then PoPS |
+| `blsctregtest` | 4 NAV | 100 NAV                  | Local BLSCT / PoPS development chain                  |
 
 See [Concepts → Consensus & supply](../concepts/consensus.md).
 
@@ -31,7 +30,7 @@ Pseudocode (see `packages/indexer/src/sync/supply.ts` in `navio-blocks` for real
 
 ```ts
 function supplyDelta(block, network, params) {
-    // PoPS on every network — single-branch.
+    // BLSCT / PoPS networks only.
     const subsidy = BigInt(params.nBLSCTBlockReward); // sats, 4 NAV = 4 * 1e8
     const recipientType = 'staker';
 
@@ -42,7 +41,7 @@ function supplyDelta(block, network, params) {
 }
 ```
 
-At mainnet genesis: credit 81,743,678 NAV as migrated supply and burn any legacy community-fund balance + swap-window staking rewards. Testnet genesis block may include a transparent bootstrap output seeding the initial staker set — the indexer reads the explicit coinbase outputs rather than hard-coding an amount.
+Height 1 on BLSCT chains mints `nBLSCTFirstBlockReward`. On mainnet, subsequent PoW bootstrap blocks through `nLastPOWHeight` carry zero subsidy when `fOnlyFirstPoWBlockHasReward = true`; PoPS blocks after the bootstrap window pay `nBLSCTBlockReward`.
 
 ## Endpoints
 
@@ -61,7 +60,8 @@ Served from the precomputed `block_supply` table:
 
 ## Edge cases
 
--   **Mainnet genesis** — migrate 81,743,678 NAV, burn legacy community fund, burn swap-window rewards.
--   **Testnet genesis bootstrap** — initial PoPS staker set requires seed commitments; read the actual transparent bootstrap output(s) from the genesis block rather than hard-coding a value (testnet cuts change).
+-   **Height 1 initial mint** — use `nBLSCTFirstBlockReward` from chainparams.
+-   **Bootstrap PoW window** — on mainnet, heights `2..nLastPOWHeight` have zero subsidy when `fOnlyFirstPoWBlockHasReward = true`.
+-   **Testnet genesis bootstrap** — initial PoPS staker set may require seed commitments; read the explicit chain data rather than hard-coding explorer assumptions.
 -   **OP_RETURN burn** — every block's OP_RETURN outputs reduce circulating supply.
 -   **Validator reward** — credited via BLSCT coinstake outputs (amount hidden). **Transaction fees are burned** (not paid to validator), reducing circulating supply.

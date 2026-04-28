@@ -103,14 +103,14 @@ const collection = await client.createTokenCollection({
 
 // Mint
 const mint = await client.mintToken({
-    address: 'tnav1...',
+    address: 'tnv1...',
     collectionTokenId: collection.collectionTokenId,
     amount: 123_456,
 });
 
 // Transfer
 await client.sendToken({
-    address: 'tnav1...',
+    address: 'tnv1...',
     amount: 25n,
     tokenId: collection.collectionTokenId,
     memo: 'Token payment',
@@ -123,14 +123,14 @@ const nftCollection = await client.createNftCollection({
 });
 
 const nftMint = await client.mintNft({
-    address: 'tnav1...',
+    address: 'tnv1...',
     collectionTokenId: nftCollection.collectionTokenId,
     nftId: 42n,
     metadata: { name: 'Artifact', rarity: 'legendary' },
 });
 
 await client.sendNft({
-    address: 'tnav1...',
+    address: 'tnv1...',
     collectionTokenId: nftCollection.collectionTokenId,
     nftId: 42n,
 });

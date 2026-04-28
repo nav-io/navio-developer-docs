@@ -14,7 +14,7 @@ The flow mirrors Bitcoin's `createrawtransaction` → `fundrawtransaction` → `
 ```bash
 navio-cli -testnet createblsctrawtransaction \
     '[]' \
-    '[{"address":"tnav1...recipient...", "amount": 1.0}]'
+    '[{"address":"tnv1...recipient...", "amount": 1.0}]'
 ```
 
 First arg is the input array (empty = let `fundblsctrawtransaction` pick). Second is outputs. Returns unsigned raw tx hex.
@@ -24,7 +24,7 @@ You can supply explicit inputs when you need to spend specific outputs:
 ```bash
 navio-cli -testnet createblsctrawtransaction \
     '[{"output_hash":"abc123..."}]' \
-    '[{"address":"tnav1...", "amount":1.0}]'
+    '[{"address":"tnv1...", "amount":1.0}]'
 ```
 
 Inputs reference `output_hash` directly — Navio does not use `txid:vout`. See [outpoint model](../concepts/outpoint.md).
@@ -53,30 +53,32 @@ Returns the signed hex plus a `complete: true|false` flag. If `false`, inspect t
 navio-cli -testnet decodeblsctrawtransaction "<signed-hex>"
 ```
 
-Returns a full JSON view:
+Returns a structured JSON view of the unsigned transaction:
 
 ```json
 {
-  "txid": "...",
-  "vin":  [{"prev_out": "...", "script_sig": "..."}],
-  "vout": [
+  "inputs": [
     {
-      "value":       0,
-      "scriptPubKey": {...},
-      "tokenId":      null,
-      "blsctData": {
-        "blindingKey": "...",
-        "viewTag":     17,
-        "spendingKey": "...",
-        "rangeProofSize": 675
-      },
-      "outputHash":   "..."
+      "outid": "abc123...",
+      "value": 100000000,
+      "gamma": "...",
+      "is_staked_commitment": false
+    }
+  ],
+  "outputs": [
+    {
+      "scriptAddress": "tnv1...",
+      "amount": 1.0,
+      "amount_navoshi": 100000000,
+      "blinding_key": "...",
+      "outputHash": "...",
+      "gamma": "...",
+      "scriptPubKey": "...",
+      "spending_key": "..."
     },
     ...
   ],
-  "locktime":       0,
-  "balanceProofSize": 192,
-  "txSignatureSize":  48
+  "fee": 125000
 }
 ```
 

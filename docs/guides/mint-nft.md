@@ -75,7 +75,7 @@ for (const n of nfts) {
 
 ```ts
 await client.sendNft({
-    address:           'tnav1...friend...',
+    address:           'tnv1...friend...',
     collectionTokenId: collection.collectionTokenId,
     nftId:             3n,
     memo:              'Gift',

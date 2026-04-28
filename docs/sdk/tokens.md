@@ -44,7 +44,7 @@ const nftCollection = await client.createNftCollection({
 
 ```ts
 const mint = await client.mintToken({
-    address:           'tnav1...recipient...',
+    address:           'tnv1...recipient...',
     collectionTokenId: collection.collectionTokenId,
     amount:            123_456,  // bigint or number
 });
@@ -54,7 +54,7 @@ const mint = await client.mintToken({
 
 ```ts
 const nftMint = await client.mintNft({
-    address:           'tnav1...recipient...',
+    address:           'tnv1...recipient...',
     collectionTokenId: nftCollection.collectionTokenId,
     nftId:             42n,
     metadata:          { name: 'Artifact', rarity: 'legendary' },
@@ -76,7 +76,7 @@ interface MintAssetResult {
 
 ```ts
 await client.sendToken({
-    address: 'tnav1...',
+    address: 'tnv1...',
     amount:  25n,
     tokenId: collection.collectionTokenId,
     memo:    'Thanks',
@@ -88,14 +88,14 @@ await client.sendToken({
 ```ts
 // Using full 80-hex token id
 await client.sendNft({
-    address: 'tnav1...',
+    address: 'tnv1...',
     tokenId: '<80-hex>',
     memo:    'Gift NFT',
 });
 
 // Or collection + nft_id pair
 await client.sendNft({
-    address:           'tnav1...',
+    address:           'tnv1...',
     collectionTokenId: '<64-hex>',
     nftId:             42n,
 });

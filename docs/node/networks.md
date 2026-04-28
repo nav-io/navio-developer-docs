@@ -1,4 +1,4 @@
-# Running mainnet / testnet / signet / regtest
+# Running mainnet / testnet / signet / regtest / blsctregtest
 
 See [Concepts → Networks](../concepts/networks.md) for ports, magic bytes, and bech32 HRPs.
 
@@ -6,17 +6,18 @@ See [Concepts → Networks](../concepts/networks.md) for ports, magic bytes, and
 
 ```bash
 naviod                 # mainnet (default)
-naviod -testnet        # current testnet (testnet5)
+naviod -testnet        # current public testnet (testnet6)
 naviod -signet         # signet
 naviod -regtest        # local regtest
+naviod -blsctregtest   # local BLSCT / PoPS regtest
 ```
 
 Chain selection drives:
 
--   Datadir subdirectory (`testnet5/`, `signet/`, `regtest/`).
+-   Datadir subdirectory (`testnet6/`, `signet/`, `regtest/`, `blsctregtest/`).
 -   Genesis block and checkpoints.
 -   P2P port, RPC port, magic bytes.
--   Bech32 HRP (`nav` / `tnav` / `tnavrt`).
+-   BLSCT address HRP on BLSCT-enabled chains (`nav` / `tnv` / `rnv`).
 -   BLSCT chain context — affects address encoding, token-id padding, consensus rules.
 
 ## Datadir layout
@@ -35,7 +36,12 @@ Chain selection drives:
 ├── wallets/
 │   └── wallet/
 │       └── wallet.dat
-└── testnet5/            # if -testnet
+├── testnet6/            # if -testnet
+│   ├── debug.log
+│   ├── blocks/
+│   ├── chainstate/
+│   └── wallets/
+└── blsctregtest/        # if -blsctregtest
     ├── debug.log
     ├── blocks/
     ├── chainstate/
@@ -55,22 +61,22 @@ naviod -datadir=/var/navio/test -testnet -port=33672 -rpcport=33679
 
 Change `-port=` and `-rpcport=` to avoid collisions.
 
-## Regtest: instant blocks for development
+## Regtest modes for development
 
-Regtest starts with an empty chain you control. Mine blocks on demand:
+Plain `-regtest` is a non-BLSCT chain. For confidential-transaction and PoPS development, use `-blsctregtest` instead:
 
 ```bash
-naviod -regtest -daemon
-addr=$(navio-cli -regtest getnewaddress)
-navio-cli -regtest generatetoaddress 101 "$addr"   # note: PoW-style generation is a regtest-only path; mainnet/testnet are PoPS
-navio-cli -regtest getblsctbalance
+naviod -blsctregtest -daemon
+addr=$(navio-cli -blsctregtest getnewaddress)
+navio-cli -blsctregtest generatetoaddress 101 "$addr"
+navio-cli -blsctregtest getblsctbalance
 ```
 
-Regtest respects all consensus rules except difficulty — useful for testing BLSCT flows in isolation. See the [SDK quickstart](../sdk/quickstart.md) for integrating regtest into a dev loop.
+`-blsctregtest` keeps instant local mining but enables BLSCT and PoPS rules. Use plain `-regtest` when you specifically want the non-BLSCT rule set. The [SDK quickstart](../sdk/quickstart.md) still documents the SDK's current `regtest` network string; for chain-faithful core BLSCT testing, prefer `-blsctregtest`.
 
 ## Current testnet directory name
 
-Testnet versioning: the on-disk directory is `testnet5` on current releases. When a new testnet is cut, it bumps to `testnet6` etc. Scripts that hard-code the directory must be updated.
+Testnet versioning: the on-disk directory is `testnet6` on the current branch. When a new testnet is cut, that suffix increments. Scripts that hard-code the directory must be updated.
 
 ## When does a new testnet happen?
 

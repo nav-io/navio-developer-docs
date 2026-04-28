@@ -10,9 +10,7 @@ CTransaction (BLSCT)
 ├── vin[]              CTxIn[]    (see below)
 ├── vout[]             CTxOut[]   BLSCT outputs — see "Output construction"
 ├── nLockTime          uint32     standard locktime
-├── txSignature        48 bytes   aggregated BLS signature
-├── balanceProof       bytes      aggregated Bulletproofs(+)+ range proofs
-└── tokenData          optional   token-creation / mint metadata + signature
+└── txSignature        48 bytes   aggregated BLS signature
 ```
 
 ## CTxIn
@@ -40,8 +38,8 @@ CTxOut
 
 CTxOutBLSCTData
 ├── spendingKey        MclG1Point (48 bytes)   S' — stealth spend pubkey
-├── ephemeralKey       MclG1Point (48 bytes)
-├── blindingKey        MclG1Point (48 bytes)   R
+├── ephemeralKey       MclG1Point (48 bytes)   R = r · G
+├── blindingKey        MclG1Point (48 bytes)   B = r · S
 ├── rangeProof         bulletproofs_plus::RangeProof<Mcl>   Bulletproofs++
 └── viewTag            uint16_t (2 bytes)      τ
 ```
@@ -53,12 +51,10 @@ Wire-level serialisation order differs from struct-member order and uses a senti
 Computed as:
 
 ```
-output_hash = SHA256(SHA256(
-    serialize(nValue, scriptPubKey, tokenId, blsctData)
-))
+output_hash = SHA256(SHA256(serialize(CTxOut)))
 ```
 
-The output hash is the canonical identifier — see [outpoint model](../concepts/outpoint.md). It is stored in the block's tx-keys index for efficient sync.
+In the implementation this is `HashWriter{} << TX_NO_WITNESS(*this)` over the fully-serialised `CTxOut`. The output hash is the canonical identifier — see [outpoint model](../concepts/outpoint.md). It is stored in the block's tx-keys index for efficient sync.
 
 ## Aggregated signature
 
@@ -70,21 +66,9 @@ Covers:
 
 Verification batches these into one pairing-product equation per transaction. At block validation, transactions can be batched together for even cheaper amortised cost.
 
-## Token-creation extras
+## Token / NFT metadata
 
-When `tokenData` is present:
-
-```
-tokenData
-├── token_pubkey       48 bytes    Collection owner's BLS token-signing pubkey
-├── metadata           map<str,str>
-├── totalSupply        int64
-├── mintedNft          (optional) uint64  — for mintnft, the nft_id being minted
-├── mintedMetadata     (optional) map<str,str>
-└── tokenSig           48 bytes    BLS signature under token_scalar committing to above
-```
-
-Consensus verifies `tokenSig` against `token_pubkey`. The computed `token_id` is `H(metadata || totalSupply)`.
+Token semantics are expressed through `tokenId`, output predicates, and token-signing logic in the wallet / token code paths.
 
 ## Non-BLSCT fallback outputs
 
@@ -98,7 +82,7 @@ These use the inherited Bitcoin `CTxOut` without `blsctData`. They appear alongs
 
 ## Aggregated transactions
 
-Navio supports combining multiple independently-authored signed transactions into one: concatenate inputs, concatenate outputs, sum signatures, re-aggregate balance proofs. See [`navio-blsct` → `CTx.aggregateTransactions`](../blsct-lib/transactions.md#ctx-aggregation) and [`NavioClient.aggregateTransactions`](../sdk/sending.md#aggregate-transactions).
+Navio supports combining multiple independently-authored signed transactions into one: concatenate inputs, concatenate outputs, and aggregate the transaction signatures. See [`navio-blsct` → `CTx.aggregateTransactions`](../blsct-lib/transactions.md#ctx-aggregation) and [`NavioClient.aggregateTransactions`](../sdk/sending.md#aggregate-transactions).
 
 ## Size budget (typical)
 
@@ -109,7 +93,6 @@ Navio supports combining multiple independently-authored signed transactions int
 | Per output (BLSCT, NAV)          | ~850 (incl. range proof share) |
 | Per output (token, +token_id)    | ~885           |
 | Aggregated tx signature          | 48             |
-| Balance proof (shared)           | ~100–200       |
 
 A typical 2-in / 2-out BLSCT NAV transaction is around 2–3 KB — competitive with Bitcoin P2WSH txs but with full amount privacy.
 

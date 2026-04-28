@@ -14,7 +14,7 @@ CBlockHeader (80 bytes)
 └── nNonce              uint32    Header nonce (legacy Bitcoin field; PoPS proof lives in block.posProof, not here)
 ```
 
-Identical to Bitcoin at the byte level. All PoPS blocks — mainnet and testnet — use the same 80-byte header shape. Consensus-critical data that cannot fit in the header (the ZK proof itself) lives in `block.posProof`, appended outside the header.
+Identical to Bitcoin at the byte level. All BLSCT / PoPS blocks use the same 80-byte header shape. Consensus-critical data that cannot fit in the header (the ZK proof itself) lives in `block.posProof`, appended outside the header.
 
 ## Block body
 
@@ -45,11 +45,11 @@ vtx[1] (coinstake) — first output is zero-value nonstandard marker
 block.posProof — encoded ZK proof (set-membership + range proof)
 ```
 
-Key points about PoPS — applies to **both mainnet and testnet**:
+Key points about PoPS — applies to the current BLSCT networks (mainnet, testnet, and `blsctregtest`):
 
 -   `posProof` does **not** identify the staker's locked UTXO. It contains a set-membership proof over the current staked-commitment set plus a range proof binding a hidden stake amount to the block's kernel-hash eligibility threshold.
 -   Eligibility is verifiable with zero-knowledge — no validator identity, amount, or cross-block linkage is revealed.
--   Coinstake outputs pay the 4 NAV reward + returned principal as BLSCT outputs addressed to sub-addresses in the staker's staking pool (account `-2`).
+-   Coinstake outputs pay the network's current PoPS subsidy plus returned principal as BLSCT outputs addressed to sub-addresses in the staker's staking pool (account `-2`).
 
 Full math, verifier equations, serialisation, source-tree map: [BLSCT → Proof-of-Private-Stake](pops.md).
 
@@ -73,7 +73,7 @@ Standard Bitcoin-style Merkle tree of transaction hashes, committed to in the he
 The [navio-blocks](../explorer/index.md) indexer categorises blocks via:
 
 ```python
-block.type = "PoPS"  # always — every network uses PoPS
+block.type = "PoPS"  # on BLSCT / PoPS chains
 ```
 
 BLSCT-aware outputs display as `Hidden` amounts. Transparent outputs (genesis-time bootstrap outputs that seed the PoPS staker set on testnet cuts, and OP_RETURN burns) show values normally. See [supply tracking](../explorer/supply.md).
@@ -84,4 +84,4 @@ BLSCT-aware outputs display as `Hidden` amounts. Transparent outputs (genesis-ti
 -   `src/blsct/pos/` — PoS / PoPS consensus rules.
 -   `src/consensus/params.h` — chain-level constants (block time, max size, activation heights).
 
-Mainnet activation: Navcoin block **10,500,000** (est. end of June 2026). Max block size **4 MB**. Target block time **60 s** (`nPosTargetSpacing = 60`). Block reward **4 NAV** (`nBLSCTBlockReward = 2 * COIN * (60/30)`).
+Current chainparams: mainnet uses a bootstrap PoW window through height `100`, then PoPS with `nPosTargetSpacing = 120` and `nBLSCTBlockReward = 8 NAV`; testnet uses a bootstrap PoW window through height `1000`, then PoPS with `nPosTargetSpacing = 60` and `nBLSCTBlockReward = 4 NAV`.

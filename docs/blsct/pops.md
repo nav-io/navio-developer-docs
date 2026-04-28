@@ -1,6 +1,6 @@
 # Proof-of-Private-Stake (PoPS)
 
-**PoPS** is Navio's consensus mechanism — on both **mainnet** and **testnet**. Every block after the activation height is produced by a validator that proves three things in zero-knowledge:
+**PoPS** is Navio's BLSCT consensus mechanism on **mainnet** and **testnet** (and on `blsctregtest` for local development). Every PoPS block after the bootstrap PoW window is produced by a validator that proves three things in zero-knowledge:
 
 1.  It controls an output in the current **staked commitment set** — without revealing which one.
 2.  That output's hidden amount is large enough to satisfy the **Kernel-Hash eligibility** inequality at this block height.
@@ -56,21 +56,17 @@ Validators lock stake by publishing a BLSCT transaction whose output is tagged a
 | ------- | ----------------------------------- |
 | mainnet | **10,000 NAV** (`10000 * COIN`)     |
 | testnet | **10,000 NAV**                      |
-| signet  | **10,000 NAV**                      |
-| regtest | **100 NAV**                         |
+| `blsctregtest` | **100 NAV**                  |
 
-Source: `kernel/chainparams.cpp`. Every input of a `stakelock` tx must prove via a Bulletproof range argument that its hidden amount exceeds `nPePoSMinStakeAmount`.
+Source: `kernel/chainparams.cpp`. Plain `signet` and plain `regtest` are not PoPS chains in the current implementation.
 
 ### Block-production parameters
 
-| Parameter             | Value                                            |
-| --------------------- | ------------------------------------------------ |
-| `nPosTargetSpacing`   | **60 s** (1-minute blocks)                       |
-| `nPosTargetTimespan`  | **1800 s** (30 min retarget window)              |
-| Difficulty adjustment | Every `nPosTargetTimespan / nPosTargetSpacing = 30` blocks |
-| `posLimit` (mainnet)  | `0x00000000ffffffff…`                            |
-| `posLimit` (testnet)  | `0x0000ffffffffffff…`                            |
-| `nBLSCTBlockReward`   | $2 \cdot \texttt{COIN} \cdot (\texttt{nPosTargetSpacing} / 30) = \mathbf{4~NAV}$ per block |
+| Network        | `nPosTargetSpacing` | `nPosTargetTimespan` | `posLimit`               | `nBLSCTBlockReward` |
+| -------------- | ------------------- | -------------------- | ------------------------ | ------------------- |
+| mainnet        | **120 s**           | **3600 s**           | `0x0000ffffffffffff…`    | **8 NAV**           |
+| testnet        | **60 s**            | **1800 s**           | `0x0000ffffffffffff…`    | **4 NAV**           |
+| `blsctregtest` | **60 s**            | **1800 s**           | `0x0000ffffffffffff…`    | **4 NAV**           |
 
 ---
 

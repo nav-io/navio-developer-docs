@@ -6,7 +6,7 @@ The SDK exposes three high-level send methods, plus raw broadcast and aggregatio
 
 ```ts
 const result = await client.sendTransaction({
-    address: 'tnav1...',
+    address: 'tnv1...',
     amount:  100_000_000n,        // satoshis
     memo:    'Coffee',
     subtractFeeFromAmount: false, // default
@@ -48,7 +48,7 @@ Use when sending "everything in this wallet":
 
 ```ts
 await client.sendTransaction({
-    address: 'tnav1...',
+    address: 'tnv1...',
     amount: 50_000_000n,
     subtractFeeFromAmount: true,
 });
@@ -58,7 +58,7 @@ await client.sendTransaction({
 
 ```ts
 await client.sendToken({
-    address: 'tnav1...',
+    address: 'tnv1...',
     amount:  25n,
     tokenId: 'abcdef...64-hex...',    // collection id
     memo:    'Token payment',
@@ -73,7 +73,7 @@ Either pass a full 80-hex token id:
 
 ```ts
 await client.sendNft({
-    address: 'tnav1...',
+    address: 'tnv1...',
     tokenId: '<80-hex>',
     memo:    'NFT transfer',
 });
@@ -83,7 +83,7 @@ Or pass the collection + nft_id pair:
 
 ```ts
 await client.sendNft({
-    address:           'tnav1...',
+    address:           'tnv1...',
     collectionTokenId: '<64-hex>',
     nftId:             1n,
     memo:              'NFT transfer',

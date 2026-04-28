@@ -4,7 +4,7 @@ Each BLSCT output's committed amount $v_{\text{amt}}$ must be provably in $[0, 2
 
 ## Why Bulletproofs+
 
--   **Small proof size.** Logarithmic in bit width: a 64-bit range proof is ~576–672 bytes; aggregated proofs over $m$ outputs grow only by $\log_2 m$ additional $(L_i, R_i)$ pairs.
+-   **Small proof size.** Logarithmic in bit width: a 64-bit range proof is ~576–672 bytes.
 -   **No trusted setup.** Generators are derived deterministically via hash-to-curve (DST `BLS_SIG_BLS12381G1_XMD:SHA-256_SSWU_RO_POP_`), with the amount generator $G$ bound to a specific `token_id` (`GeneratorDeriver` seed `"proof-of-stake"`, in `src/blsct/range_proof/generators.h`).
 -   **Standard security.** Soundness reduces to the discrete-log problem on BLS12-381.
 
@@ -39,7 +39,7 @@ A Bulletproofs+ range proof for $v \in [0, 2^{64})$ with $m = 1$ output consists
 | $\tau_x$        | $\mathbb{F}_r$      | Embeds the secondary 64-bit message `msg2` (used for amount recovery — see below).        |
 | $\alpha_{\text{hat}}$ | $\mathbb{F}_r$| Embeds the primary 64-bit message `msg1` *together with* the first committed amount $v_0$ (the encrypted amount the receiver decrypts during [amount recovery](amount-recovery.md)). |
 
-For a single-output, 64-bit proof this is $3 + 2 \cdot 6 = 15$ $G_1$ elements plus 5 scalars — on the order of **600–650 bytes** depending on witness values. Aggregating $m$ outputs adds $2 \cdot \log_2 m$ extra $G_1$ elements (the $L_i, R_i$ rounds grow).
+For a single-output, 64-bit proof this is $3 + 2 \cdot 6 = 15$ $G_1$ elements plus 5 scalars — on the order of **600–650 bytes** depending on witness values. This single-output form is the one Navio documents and uses here.
 
 ## Fiat–Shamir transcript
 
@@ -54,7 +54,7 @@ Bulletproofs+ replaces the classic log-IP argument with a *weighted* inner-produ
 
 Verification dominates per-block cost for a well-populated BLSCT block. Typical breakdown:
 
--   ~1000 scalar-muls in $G_1$ per proof (for a 4-output aggregated 64-bit proof).
+-   Multi-scalar multiplication in $G_1$ dominates verification cost for each 64-bit proof.
 -   Multi-exponentiation tricks (Pippenger, Straus) reduce wall-clock by ~3×.
 -   Batch verification over all proofs in a block further amortises cost.
 

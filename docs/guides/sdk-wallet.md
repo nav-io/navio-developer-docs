@@ -110,7 +110,7 @@ try {
 ```bash
 npm run wallet create
 # MNEMONIC: abandon ability ... (write down!)
-# Receive address: tnav1...
+# Receive address: tnv1...
 
 # Get some testnet NAV via /faucet in Discord, then:
 
@@ -120,7 +120,7 @@ npm run wallet sync
 npm run wallet balance
 # 10.00000000 NAV in 1 UTXOs
 
-npm run wallet send tnav1...recipient... 1
+npm run wallet send tnv1...recipient... 1
 # sent: <txid>
 # fee: 0.00010000 NAV
 ```

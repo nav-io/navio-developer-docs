@@ -32,7 +32,7 @@ const address = keyManager.getSubAddressBech32m(
     { account: 0, address: 0 },
     'testnet'
 );
-console.log('Receive address:', address); // tnav1...
+console.log('Receive address:', address); // tnv1...
 ```
 
 ## Sync the wallet
@@ -57,7 +57,7 @@ console.log(`${balanceNav.toFixed(8)} NAV`);
 
 ```ts
 const result = await client.sendTransaction({
-    address: 'tnav1...destination...',
+    address: 'tnv1...destination...',
     amount:  100_000_000n,        // 1 NAV in satoshis
     memo:    'Coffee',
 });

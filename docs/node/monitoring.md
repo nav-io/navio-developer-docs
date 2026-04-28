@@ -37,7 +37,7 @@ Navio does **not** ship a `getstakinginfo` RPC. Verify the staker is functioning
 
 -   The `navio-staker` process's own stdout/stderr — it logs each template poll, eligibility check, and submit result.
 -   `navio-cli listblscttransactions "*" 50 0 true | jq '[.[] | select(.category == "stake")] | length'` — count of recent stake rewards received by this wallet.
--   Block-height advancement at the expected rate (~60 s per block on live networks).
+-   Block-height advancement at the expected rate (~120 s on mainnet, ~60 s on testnet).
 
 ## Metrics via Prometheus
 
@@ -100,8 +100,8 @@ Unless your init system captures stdout natively, `debug.log` and `staker.log` i
 Example `logrotate` drop-in:
 
 ```
-/home/navio/.navio/testnet5/debug.log
-/home/navio/.navio/testnet5/staker.log
+/home/navio/.navio/testnet6/debug.log
+/home/navio/.navio/testnet6/staker.log
 /home/navio/.navio/debug.log
 {
     weekly

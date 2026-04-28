@@ -96,7 +96,7 @@ process.on('SIGINT', async () => {
 
 ```ts
 const r = await client.sendTransaction({
-    address: 'tnav1...recipient...',
+    address: 'tnv1...recipient...',
     amount:  100_000_000n,
     memo:    'Coffee',
 });
@@ -125,7 +125,7 @@ await client.sync();
 
 // 4. Send some to a friend
 await client.sendToken({
-    address: 'tnav1...friend...',
+    address: 'tnv1...friend...',
     amount:  100n,
     tokenId: coll.collectionTokenId,
     memo:    'Thanks',
@@ -141,7 +141,7 @@ const nftColl = await client.createNftCollection({
 });
 
 const mint = await client.mintNft({
-    address: 'tnav1...self...',
+    address: 'tnv1...self...',
     collectionTokenId: nftColl.collectionTokenId,
     nftId: 1n,
     metadata: { name: 'Artifact #1', rarity: 'common' },
@@ -150,7 +150,7 @@ const mint = await client.mintNft({
 await client.sync();
 
 await client.sendNft({
-    address: 'tnav1...recipient...',
+    address: 'tnv1...recipient...',
     collectionTokenId: nftColl.collectionTokenId,
     nftId: 1n,
     memo: 'Gift',

@@ -44,13 +44,13 @@ Amount recovery inverts these equations using the shared point $\eta$ (reconstru
 
 ## Range proof
 
-A per-output or per-transaction aggregated Bulletproofs++ range proof over the amount committed in $C$ proves
+A Bulletproofs++ range proof over the amount committed in $C$ proves
 
 $$
 0 \le v_{\text{amt}} < 2^{64}.
 $$
 
-Proof size is logarithmic in the bit width — typically 600–700 bytes per output, shrinking further when aggregated across multiple outputs in one transaction. See [range proofs](range-proofs.md).
+Proof size is logarithmic in the bit width — typically 600–700 bytes per output. See [range proofs](range-proofs.md).
 
 ## On-chain layout
 
@@ -93,14 +93,14 @@ CTxOut wire form:
     nValue            int64
 
   scriptPubKey       CScript
-  [tokenId            TokenId          if TOKEN_MARKER]
-  [predicate          VectorPredicate  if PREDICATE_MARKER]
   [blsctData                           if BLSCT_MARKER:]
     rangeProof        Bulletproofs++ range proof
     spendingKey       48 bytes         (S')
-    blindingKey       48 bytes         (R)
-    ephemeralKey      48 bytes
+    blindingKey       48 bytes         (B = r · S)
+    ephemeralKey      48 bytes         (R = r · G)
     viewTag           uint16_t         (little-endian)
+  [tokenId            TokenId          if TOKEN_MARKER]
+  [predicate          VectorPredicate  if PREDICATE_MARKER]
 ```
 
 There is no separate `outputHash` field on the wire — the hash is computed over the serialised output (see [Outpoint model](../concepts/outpoint.md)).
@@ -121,7 +121,7 @@ interface WalletOutput {
     amount:      bigint;     // satoshis, recovered
     memo:        string | null;
     tokenId:     string | null;   // 64 hex (fungible) or 80 hex (NFT) or null (NAV)
-    blindingKey: string;     // R
+    blindingKey: string;     // B = r · S
     spendingKey: string;     // S'
     isSpent:     boolean;
     // ...
