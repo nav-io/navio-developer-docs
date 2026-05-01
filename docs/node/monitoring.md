@@ -100,8 +100,8 @@ Unless your init system captures stdout natively, `debug.log` and `staker.log` i
 Example `logrotate` drop-in:
 
 ```
-/home/navio/.navio/testnet6/debug.log
-/home/navio/.navio/testnet6/staker.log
+/home/navio/.navio/testnet7/debug.log
+/home/navio/.navio/testnet7/staker.log
 /home/navio/.navio/debug.log
 {
     weekly

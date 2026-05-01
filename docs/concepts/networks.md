@@ -7,7 +7,7 @@ Current `navio-core` exposes five chain types: `main`, `test`, `signet`, `regtes
 | Network      | Flag            | BLSCT active | Default P2P port | Default RPC port | BLSCT HRP | Magic (hex) |
 | ------------ | --------------- | ------------ | ---------------- | ---------------- | --------- | ----------- |
 | mainnet      | (default)       | yes          | `48470`          | `48471`          | `nav`     | `bd5fc300`  |
-| testnet      | `-testnet`      | yes          | `33670`          | `33677`          | `tnv`     | `1c03bb83`  |
+| testnet      | `-testnet`      | yes          | `33670`          | `33677`          | `tnv`     | `2467d2c1`  |
 | signet       | `-signet`       | no           | `38333`          | `48487`          | `nav` in core chainparams, but BLSCT is inactive | (per-signet) |
 | regtest      | `-regtest`      | no           | `18444`          | `48486`          | `rnv` in core chainparams, but BLSCT is inactive | `fdbf9ffb` |
 | blsctregtest | `-blsctregtest` | yes          | `18444`          | `48484`          | `rnv`     | `fdbf9ffb` |
@@ -90,7 +90,7 @@ For SDK and library usage, the network string is passed through to `navio-blsct`
 
 Navio uses the inherited Bitcoin P2P wire protocol with distinct message-start bytes:
 
--   Testnet: `1c 03 bb 83`
+-   Testnet: `24 67 d2 c1`
 -   Mainnet: `bd 5f c3 00`
 -   Regtest / blsctregtest: `fd bf 9f fb`
 
@@ -104,7 +104,7 @@ Default data directories:
 -   macOS: `~/Library/Application Support/Navio/`
 -   Windows: `%APPDATA%\Navio\`
 
-Mainnet lives at the datadir root. Subdirectories are currently `testnet6/`, `signet/`, `regtest/`, and `blsctregtest/`.
+Mainnet lives at the datadir root. Subdirectories are currently `testnet7/`, `signet/`, `regtest/`, and `blsctregtest/`.
 
 ## Choosing a network for development
 

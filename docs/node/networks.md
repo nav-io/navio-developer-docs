@@ -6,7 +6,7 @@ See [Concepts → Networks](../concepts/networks.md) for ports, magic bytes, and
 
 ```bash
 naviod                 # mainnet (default)
-naviod -testnet        # current public testnet (testnet6)
+naviod -testnet        # current public testnet (testnet7)
 naviod -signet         # signet
 naviod -regtest        # local regtest
 naviod -blsctregtest   # local BLSCT / PoPS regtest
@@ -14,7 +14,7 @@ naviod -blsctregtest   # local BLSCT / PoPS regtest
 
 Chain selection drives:
 
--   Datadir subdirectory (`testnet6/`, `signet/`, `regtest/`, `blsctregtest/`).
+-   Datadir subdirectory (`testnet7/`, `signet/`, `regtest/`, `blsctregtest/`).
 -   Genesis block and checkpoints.
 -   P2P port, RPC port, magic bytes.
 -   BLSCT address HRP on BLSCT-enabled chains (`nav` / `tnv` / `rnv`).
@@ -36,7 +36,7 @@ Chain selection drives:
 ├── wallets/
 │   └── wallet/
 │       └── wallet.dat
-├── testnet6/            # if -testnet
+├── testnet7/            # if -testnet
 │   ├── debug.log
 │   ├── blocks/
 │   ├── chainstate/
@@ -76,7 +76,7 @@ navio-cli -blsctregtest getblsctbalance
 
 ## Current testnet directory name
 
-Testnet versioning: the on-disk directory is `testnet6` on the current branch. When a new testnet is cut, that suffix increments. Scripts that hard-code the directory must be updated.
+Testnet versioning: the on-disk directory is `testnet7` on the current branch. When a new testnet is cut, that suffix increments. Scripts that hard-code the directory must be updated.
 
 ## When does a new testnet happen?
 

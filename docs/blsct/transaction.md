@@ -62,9 +62,20 @@ Covers:
 
 -   Every per-input authorisation.
 -   Balance proof (inputs − outputs − fee balance).
+-   Fee proof (binds the explicit fee value to the signature via a Pedersen commitment carried in `PayFeePredicate` — see [Signatures → Fee-binding commitment](signatures.md#fee-binding-commitment)).
 -   Token / NFT authorisation where applicable.
 
 Verification batches these into one pairing-product equation per transaction. At block validation, transactions can be batched together for even cheaper amortised cost.
+
+## Minimum-fee consensus rule
+
+Independently of (and before) the aggregate-signature check, every BLSCT user transaction must satisfy
+
+```
+nFee >= GetTransactionWeight(tx) * Consensus::Params::nBLSCTDefaultFee
+```
+
+where `nFee` is the explicit `nValue` of the unique `PayFeePredicate` output and `nBLSCTDefaultFee` is the per-byte fee rate carried in chainparams (default 125 sat/byte on mainnet, testnet, and `blsctregtest`). Failing transactions are rejected with `blsct-fee-below-min`. This is the rule that makes the basic-scheme balance signature safe against output-malleability attacks; see [Consensus & supply → Consensus minimum-fee rule](../concepts/consensus.md#consensus-minimum-fee-rule) for the full security argument and the coinbase / aggregation exemptions.
 
 ## Token / NFT metadata
 
@@ -82,7 +93,7 @@ These use the inherited Bitcoin `CTxOut` without `blsctData`. They appear alongs
 
 ## Aggregated transactions
 
-Navio supports combining multiple independently-authored signed transactions into one: concatenate inputs, concatenate outputs, and aggregate the transaction signatures. See [`navio-blsct` → `CTx.aggregateTransactions`](../blsct-lib/transactions.md#ctx-aggregation) and [`NavioClient.aggregateTransactions`](../sdk/sending.md#aggregate-transactions).
+Navio supports combining multiple independently-authored signed transactions into one: concatenate inputs, concatenate (non-fee) outputs, and aggregate the transaction signatures. The per-tx fee outputs collapse into a single merged fee output whose `nValue` is the sum of the inputs' fees and whose `PayFeePredicate` public key is the group sum of the per-tx fee commitments — the construction is linear in both the value and the blinding scalar, so the merged fee continues to verify under the aggregated signature. See [Signatures → Fee-binding commitment → Aggregation across transactions](signatures.md#aggregation-across-transactions), and the JS / SDK wrappers [`navio-blsct` → `CTx.aggregateTransactions`](../blsct-lib/transactions.md#ctx-aggregation) and [`NavioClient.aggregateTransactions`](../sdk/sending.md#aggregate-transactions).
 
 ## Size budget (typical)
 

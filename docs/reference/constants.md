@@ -17,7 +17,7 @@ Cross-reference table. Authoritative core values live in [`src/kernel/chainparam
 | Network      | Magic bytes (hex) |
 | ------------ | ----------------- |
 | mainnet      | `bd 5f c3 00`     |
-| testnet      | `1c 03 bb 83`     |
+| testnet      | `24 67 d2 c1`     |
 | signet       | (per signet)      |
 | regtest      | `fd bf 9f fb`     |
 | blsctregtest | `fd bf 9f fb`     |
@@ -154,4 +154,4 @@ Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
 | macOS   | `~/Library/Application Support/Navio/`                |
 | Windows | `%APPDATA%\Navio\`                                    |
 
-Testnet under `testnet6/`, signet under `signet/`, regtest under `regtest/`, and BLSCT regtest under `blsctregtest/`.
+Testnet under `testnet7/`, signet under `signet/`, regtest under `regtest/`, and BLSCT regtest under `blsctregtest/`.

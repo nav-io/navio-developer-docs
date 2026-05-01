@@ -87,14 +87,48 @@ Set invariants:
 
 ### Default fee calculation
 
-Wallet default fee is computed directly from transaction size — no fee-market estimation, no validator tip. Source: [`src/blsct/wallet/txfactory_global.h`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_global.h) / [`txfactory_base.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_base.cpp).
+The wallet computes the fee directly from transaction size — no fee-market estimation, no validator tip. The per-byte rate is a chainparam (`Consensus::Params::nBLSCTDefaultFee`) so each network can tune its own minimum. Source: [`src/blsct/wallet/txfactory_global.h`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_global.h) / [`txfactory_base.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_base.cpp).
 
 ```
-fee_satoshis = GetTransactionWeight(tx) * BLSCT_DEFAULT_FEE
-             = serialized_size_bytes * 125
+fee_satoshis = GetTransactionWeight(tx) * nBLSCTDefaultFee
+             = serialized_size_bytes * 125  (mainnet/testnet/blsctregtest)
 ```
 
-`BLSCT_DEFAULT_FEE = 125` (sat/byte). `GetTransactionWeight` returns the serialized size of the tx with witness data (`::GetSerializeSize(TX_WITH_WITNESS(tx))`). When `fSubtractFeeFromAmount` is set, the same formula is applied per-output via `GetTransactioOutputWeight`.
+`nBLSCTDefaultFee` is seeded from the canonical literal `BLSCT_DEFAULT_FEE = 125` defined in [`txfactory_global.h`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_global.h) and assigned per-network in [`kernel/chainparams.cpp`](https://github.com/nav-io/navio-core/blob/master/src/kernel/chainparams.cpp). `GetTransactionWeight` here is the BLSCT-specific helper that returns the serialized size of the tx with witness data (`::GetSerializeSize(TX_WITH_WITNESS(tx))`). When `fSubtractFeeFromAmount` is set, the same formula is applied per-output via `GetTransactioOutputWeight`.
+
+### Consensus minimum-fee rule
+
+The same per-byte rate is enforced at consensus time, not just by the wallet. For every BLSCT user transaction (i.e. anything other than the coinbase / reward transaction at `block.vtx[0]`), `blsct::VerifyTx` requires:
+
+```
+nFee >= GetTransactionWeight(tx) * Consensus::Params::nBLSCTDefaultFee
+```
+
+where `nFee` is the explicit `nValue` of the unique `PayFeePredicate` output. A transaction failing this check is rejected with `blsct-fee-below-min` — both at mempool admission and at block validation. The fee rate is plumbed end-to-end: `validation.cpp` reads it from `Params().GetConsensus()` and passes it into `blsct::VerifyTx` / `blsct::PrepareTxForDeferredVerification`; the wallet's `SendTransaction` overrides the default sentinel in `CreateTransactionData::nBLSCTDefaultFee` with the same chainparam before calling `TxFactory::CreateTransaction`, so wallet-built transactions price exactly at the consensus minimum. Source: [`src/blsct/wallet/verification.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/verification.cpp) (`VerifyTxCore`).
+
+#### Why this is a consensus rule, not just policy
+
+The fee output of a BLSCT transaction is the only **clear-value** output: an `OP_RETURN` with `nValue = fee` and a `PayFeePredicate` carrying a public key. The fee value isn't hidden in a Pedersen commitment — anyone seeing the wire bytes sees the fee.
+
+Without a consensus floor, a wire-level attacker could (in principle) lower the fee output's `nValue` by some amount $\delta$, add a fresh BLSCT output of value $\delta$ to themselves, and patch the aggregate signature to keep the balance equation consistent. The basic-scheme balance signature signs the constant tag `BLSCTBALANCE` non-augmented, so any attacker who knows their own blinding scalar $\gamma_X$ can compute $-\gamma_X \cdot H_{BLS}(\text{BLSCTBALANCE})$ and fold it into the tx's aggregate `txSig` to compensate the balance-pair shift introduced by the new output.
+
+The minimum-fee rule defeats this: adding any consensus-valid output strictly grows `GetTransactionWeight(tx)` (a BLSCT output costs hundreds of bytes for its range proof, ephemeral / spending / blinding keys, and script), so the new minimum
+
+$$
+(W + W_{\text{phantom}}) \cdot \text{BLSCT\_DEFAULT\_FEE}
+$$
+
+exceeds the original fee $F = W \cdot \text{BLSCT\_DEFAULT\_FEE}$ by $W_{\text{phantom}} \cdot \text{BLSCT\_DEFAULT\_FEE}$. The attacker is forced to over-fund the fee instead of extracting from it — and they have no way to add value to the tx without controlling additional inputs.
+
+This is the local check that makes BLSCT's basic-scheme balance signature safe against output-malleability attacks, despite the signature itself not committing to the output set.
+
+#### Aggregated transactions
+
+`AggregateTransactions` (in [`src/blsct/wallet/txfactory_global.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_global.cpp)) collapses several signed BLSCT transactions into one. The merged fee is $\sum_i F_i$ and the merged weight is $\sum_i W_i - \text{header overlap}$, so the merged transaction satisfies the minimum with strictly more margin than any constituent. No special handling needed.
+
+#### Coinbase / reward exemption
+
+Coinbase / coinstake reward transactions (`tx.IsCoinBase()` or `blockReward > 0` in the verification path) carry no `PayFeePredicate` output and are funded by the block subsidy plus the burned fees of the block. They use a separate consensus path (the coinbase value check in `ConnectBlock`) and are exempt from the BLSCT minimum-fee rule.
 
 ### Deflationary pressure when blocks fill
 

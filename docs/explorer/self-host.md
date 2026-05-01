@@ -47,7 +47,7 @@ rpcport=33677
 | `TESTNET_P2P_PORT`                   | `33670`                      | Default testnet P2P port if seed entry omits one                            |
 | `MAINNET_P2P_PORT`                   | `48470`                      | Default mainnet P2P port if seed entry omits one                            |
 | `P2P_MESSAGE_MAGIC_HEX`              |                              | Message-start override (8 hex chars); supersedes network-specific magic     |
-| `P2P_TESTNET_MAGIC_HEX`              | `1c03bb83`                   | Testnet message-start bytes                                                 |
+| `P2P_TESTNET_MAGIC_HEX`              | `2467d2c1`                   | Testnet message-start bytes                                                 |
 | `P2P_MAINNET_MAGIC_HEX`              | `bd5fc300`                   | Mainnet message-start bytes                                                 |
 | `P2P_PROTOCOL_VERSION`               | `70016`                      | Protocol version announced in direct P2P `version` handshake                |
 | `P2P_REQUEST_TIMEOUT_MS`             | `4500`                       | Timeout per direct P2P handshake/`getaddr` request                          |

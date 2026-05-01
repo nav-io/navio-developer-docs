@@ -52,7 +52,7 @@ The peers table stores `latitude`, `longitude`, `country`, `city`, `isp` — sen
 
 ### Network magic
 
-`P2P_MAINNET_MAGIC_HEX` (default `bd5fc300`) and `P2P_TESTNET_MAGIC_HEX` (default `1c03bb83`). The magic bytes open every P2P message; sending the wrong magic results in the peer ignoring or banning us. Override with `P2P_MESSAGE_MAGIC_HEX` if a cut of testnet changes magic.
+`P2P_MAINNET_MAGIC_HEX` (default `bd5fc300`) and `P2P_TESTNET_MAGIC_HEX` (default `2467d2c1`). The magic bytes open every P2P message; sending the wrong magic results in the peer ignoring or banning us. Override with `P2P_MESSAGE_MAGIC_HEX` if a cut of testnet changes magic.
 
 ## Bootstrap seeds
 
