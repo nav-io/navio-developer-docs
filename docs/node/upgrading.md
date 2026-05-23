@@ -14,8 +14,8 @@ Standard path for a minor/patch release:
 cd /home/navio/navio-core
 sudo -u navio git fetch --tags
 sudo -u navio git checkout <new-tag>
-sudo -u navio ./autogen.sh && sudo -u navio ./configure && sudo -u navio make -j"$(nproc)"
-sudo make install
+sudo -u navio cmake -B build -G Ninja && sudo -u navio cmake --build build
+sudo cmake --install build
 
 # start naviod via your supervisor, wait for "loadblk thread exit" in debug.log,
 # then start navio-staker:
