@@ -9,7 +9,7 @@ npm install navio-blsct
 Requirements:
 
 -   Node.js ≥ 18 (latest LTS recommended).
--   `g++`, `make`, `swig`, `autoconf`, `automake`, `libtool`, `pkg-config` — the package builds native C++ libraries from source during install. Expect a few minutes on first install.
+-   `g++`, `make`, `cmake`, `swig`, `pkg-config` — the package builds native C++ libraries from source during install. Expect a few minutes on first install.
 
 ```ts
 import { Scalar, Point, BlsctChain, setChain } from 'navio-blsct';

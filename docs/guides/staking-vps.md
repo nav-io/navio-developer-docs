@@ -46,7 +46,7 @@ echo '/swap none swap sw 0 0' >> /etc/fstab
 ## Install `naviod` + `navio-staker`
 
 ```bash
-apt install -y build-essential libtool autotools-dev automake pkg-config \
+apt install -y build-essential cmake ninja-build pkg-config \
     libssl-dev libevent-dev bsdmainutils \
     libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
     libboost-test-dev libboost-thread-dev \
@@ -55,10 +55,9 @@ apt install -y build-essential libtool autotools-dev automake pkg-config \
 useradd -m -s /bin/bash navio
 sudo -u navio git clone https://github.com/nav-io/navio-core.git /home/navio/navio-core
 cd /home/navio/navio-core
-sudo -u navio ./autogen.sh
-sudo -u navio ./configure --enable-wallet --with-gui=no
-sudo -u navio make -j"$(nproc)"
-make install
+sudo -u navio cmake -B build -G Ninja
+sudo -u navio cmake --build build
+cmake --install build
 ```
 
 ## Configuration + wallet
@@ -185,8 +184,8 @@ sv stop naviod
 cd /home/navio/navio-core
 sudo -u navio git fetch --tags
 sudo -u navio git checkout $(git tag | tail -1)
-sudo -u navio ./autogen.sh && sudo -u navio ./configure && sudo -u navio make -j"$(nproc)"
-make install
+sudo -u navio cmake -B build -G Ninja && sudo -u navio cmake --build build
+cmake --install build
 
 sv start naviod
 # wait for sync
