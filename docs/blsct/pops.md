@@ -31,9 +31,10 @@ Design paper (initial reference, shape differs in implementation):
 | $\sigma = h_3^m g_2^f$                 | Prover's own commitment being shown to lie in $\mathbf{Y}^n$.                                      |
 | $(m, f)$                               | Committed value (stake amount) and blinding factor.                                                |
 | $\varphi = h_3^m \cdot g_2^f$           | **Set element image** — re-randomised copy of $\sigma$ under fresh generators $(g_2, h_3)$.        |
-| $\eta_{\text{FS}}$                     | Fiat-Shamir entropy tied to the parent block (prevents grinding).                                 |
-| $\eta_\varphi$                         | Per-block seed that rebases the set-membership generators (binds the proof to block contents).    |
-| $\text{KH}$                            | 32-byte kernel hash — lottery input, see §4.                                                       |
+| $\eta_{\text{FS}}$                     | Fiat-Shamir entropy. Binds the proof to the parent block **and** to this block's transaction list, so the proof is a signature over the block body (§5). |
+| $\eta_\varphi$                         | Generator-rebase seed for the set-membership / range proof. Derived only from fixed parent state, so the rebased generators — and hence $\varphi$ — cannot be ground (§5). |
+| $\text{KH}$                            | 32-byte kernel hash — per-commitment lottery input, see §4.                                        |
+| $\text{stakeModifier}$                 | 64-bit beacon accumulated from 64 historical blocks; changes once per `nModifierInterval` (§5).    |
 | $T_{\text{pos}}$                       | Compact PoS difficulty target (`nBits` of the new block).                                         |
 | $v_{\min}$                             | Per-block minimum committed amount that satisfies the kernel-hash inequality (§4).                 |
 | BLS12-381 generators for the Bulletproofs range proof are derived independently under the `TokenId()` path in `range_proof::GeneratorsFactory`. |
@@ -49,6 +50,23 @@ Validators lock stake by publishing a BLSCT transaction whose output is tagged a
 -   The set is keyed by the raw Pedersen commitment point $Y_i = v_i H + \gamma_i G \in \mathbb{G}$. The set has no owner labels — observers only see a list of 48-byte group elements.
 -   Consensus requires $|\mathbf{Y}^n| \ge 2$ to validate any PoPS block (`ProofOfStakeLogic::Verify` in [`src/blsct/pos/proof_logic.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/pos/proof_logic.cpp)). A single-commitment set would de-anonymise the staker.
 -   Set size is padded to the next power of two with "dummy" points $H_5(\text{"SET\_MEMBERSHIP\_DUMMY"} \mathbin\Vert i)$ before the proof — dummies lie in $\mathbb{G}$ with unknown openings, so extension adds no malleability surface (see `SetMemProofProver::ExtendYs`).
+
+### Ring sampling
+
+When the full staked set is larger than `nStakedCommitmentLimit` (16), the prover and verifier first sample a **ring** of at most 16 commitments to bound proof size and verification cost (ring size drives the inner-product argument's $\log_2 n$ rounds). The sample is a deterministic Fisher–Yates shuffle of the full set keyed by a **ring seed**, truncated to the limit (`OrderedElements::GetElements(seed, max_size)` in [`src/blsct/arith/elements.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/arith/elements.cpp)). Both sides recompute the same seed, so they agree on the ring.
+
+The ring seed is a non-grindable beacon (`blsct::CalculateStakeRingSeed`):
+
+$$
+\text{ringSeed} = H\bigl(\text{stakeModifier}\ \Vert\ B_{n-128}\ \Vert\ \text{bucket}_{16}(\text{time})\bigr)
+$$
+
+where $B_{n-128}$ is the hash of the ancestor `POPS_RING_SEED_LOOKBACK = 128` blocks back (the deepest available ancestor on shorter chains). The three inputs serve distinct roles:
+
+-   **stakeModifier** and **$B_{n-128}$** are fixed long before the current slot. The producer of the parent block therefore cannot choose the next ring: biasing it requires long-range control of an entire modifier interval *and* the deep anchor. This prevents a staker from grinding which competitors are included or excluded.
+-   **$\text{bucket}_{16}(\text{time})$** advances with the wall clock, so the ring re-samples every 16 s. This is a **liveness** guarantee: if every currently-sampled commitment is offline, the passage of real time rotates the ring until an online staker's commitment is included — the chain self-heals rather than stalling. The grind this admits is bounded to the few future buckets allowed by the future-time cap (§5), the same bound the kernel lives under.
+
+Sampling is skipped entirely (the whole set is the ring) when the set fits within the limit.
 
 ### Minimum stake
 
@@ -110,7 +128,7 @@ $$
 \varphi = h_3^m g_2^f.
 $$
 
-Because $(g_2, h_3)$ are rebased from $\eta_\varphi$ (which commits to the block's transaction set — see §5), $\varphi$ is unlinkable to $\sigma$: two blocks staked by the same UTXO produce different $\varphi$, yet both validate against the same $\sigma \in \mathbf{Y}$.
+Because $(g_2, h_3)$ are rebased from $\eta_\varphi$ (derived from the parent block, so distinct at every height — see §5), $\varphi$ is unlinkable to $\sigma$: two blocks staked by the same UTXO produce different $\varphi$, yet both validate against the same $\sigma \in \mathbf{Y}$.
 
 **Challenge 1.** Fiat-Shamir transcript:
 
@@ -214,34 +232,26 @@ Proving membership is necessary but not sufficient. A valid PoPS block must also
 
 ### Kernel hash
 
-From [`src/blsct/pos/helpers.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/pos/helpers.cpp):
+From [`src/blsct/pos/helpers.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/pos/helpers.cpp). The kernel hash binds the staker's **set-element image $\varphi$**, so every staked commitment draws an *independent* lottery value:
 
 ```cpp
 // Bucket the staker-chosen time into POPS_TIME_GRANULARITY_SECONDS
-// intervals. Caps per-slot grinding attempts.
+// intervals so the per-second grinding surface is quantised.
 static uint32_t BucketTime(const uint32_t& time) {
     return time - (time % POPS_TIME_GRANULARITY_SECONDS);  // 16 s
 }
 
-uint256 CalculateKernelHash(uint32_t prevTime, uint64_t stakeModifier, uint32_t time) {
-    HashWriter ss{};
-    ss << prevTime << stakeModifier << BucketTime(time);
-    return ss.GetHash();
-}
-
-// Block-level kernel hash also binds parent chain work. Two forks that
-// diverge from a common ancestor disagree on nChainWork immediately,
-// so grinding effort against one fork does not carry to a parallel
-// private branch rooted at the same ancestor.
 uint256 CalculateKernelHashWithChainWork(
     uint32_t prevTime, uint64_t stakeModifier,
-    const arith_uint256& prevChainWork, uint32_t time)
+    const arith_uint256& prevChainWork, uint32_t time,
+    const MclG1Point& phi)
 {
     HashWriter ss{};
     ss << prevTime
        << stakeModifier
        << ArithToUint256(prevChainWork)
-       << BucketTime(time);
+       << BucketTime(time)
+       << phi;            // per-commitment image -> independent draw
     return ss.GetHash();
 }
 ```
@@ -249,16 +259,17 @@ uint256 CalculateKernelHashWithChainWork(
 So at the block level
 
 $$
-\text{KH} = H(\text{prevTime} \mathbin\Vert \text{stakeModifier} \mathbin\Vert \text{prevChainWork} \mathbin\Vert \text{bucket}_{16}(\text{time})).
+\text{KH} = H\bigl(\text{prevTime} \mathbin\Vert \text{stakeModifier} \mathbin\Vert \text{prevChainWork} \mathbin\Vert \text{bucket}_{16}(\text{time}) \mathbin\Vert \varphi\bigr).
 $$
 
-Every field a staker might grind is committed here. Combined with:
+Binding $\varphi$ is what makes stake weight **proportional to total holdings** rather than to a single commitment. Without it, the kernel would be identical for every commitment a node holds in a given time bucket, so only a node's single largest commitment would matter. With it, each commitment $\varphi$ gets its own uniform draw, and a node's per-slot win expectation is the sum over its commitments — i.e. proportional to its total staked value (see §4, eligibility).
 
--   the **Fiat-Shamir entropy** $\eta_{\text{FS}} = H(\text{parentHash} \mathbin\Vert \text{parentStakeModifier})$,
--   the **time bucketing** (16-second quantisation),
--   the **chain-work binding**,
+Every field a staker might grind is committed here and is fixed by prior chain state, *except* the bucketed time:
 
-the grinding surface per slot is minimal. An attacker cannot rotate a candidate kernel hash without burning fresh work on the specific fork being extended.
+-   $\text{prevTime}$, $\text{stakeModifier}$, $\text{prevChainWork}$ — fixed by the parent block.
+-   $\varphi$ — fixed per (commitment, parent block): its generators are rebased from $\eta_\varphi$, which depends only on parent state (§5), so a staker cannot vary $\varphi$ for a given coin by changing the block body.
+-   $\text{bucket}_{16}(\text{time})$ — advances with the wall clock. The staker may only choose among the few future buckets the **future-time cap** admits (§5), so per-slot grinding is bounded to a small constant, not the open-ended window of an unbucketed/uncapped time field.
+-   The **chain-work binding** ensures grinding effort on one fork does not carry to a parallel private branch rooted at the same ancestor — each fork has a distinct $\text{prevChainWork}$.
 
 ### Minimum-value target
 
@@ -278,7 +289,7 @@ $$
 v \ge v_{\min}
 $$
 
-where $v$ is its (hidden) committed stake amount in $\sigma$. A larger $v$ lowers the implicit probability bar, giving larger stakes a proportionally larger chance of landing a winning kernel hash — the familiar PoS lottery, but proved in ZK.
+where $v$ is the (hidden) committed stake amount in the commitment whose image is $\varphi$. Since $\text{KH}$ is a uniform 256-bit hash, a single commitment is eligible in a bucket with probability $\Pr[\text{KH} \le v\,T_{\text{pos}}] = v\,T_{\text{pos}} / 2^{256}$ — linear in $v$. Because $\text{KH}$ binds $\varphi$, each of a node's commitments draws independently, so the node's expected eligibility per bucket is $\bigl(\sum_i v_i\bigr) T_{\text{pos}} / 2^{256}$ — **proportional to its total staked value**, regardless of how that value is split across commitments. This is the familiar PoS lottery, proved in zero knowledge and weighted by total stake.
 
 ### Bulletproofs+ range argument
 
@@ -288,7 +299,7 @@ $$
 v - v_{\min} \in [0, 2^{64}).
 $$
 
-The generators used by this range proof are rebased under $\eta_\varphi$ via `range_proof::GeneratorsFactory<T>::GetInstance(eta_phi)` — identical rebase as the set-membership proof. This ties the range proof to the block contents and defeats malleability.
+The generators used by this range proof are rebased under $\eta_\varphi$ via `range_proof::GeneratorsFactory<T>::GetInstance(eta_phi)` — identical rebase as the set-membership proof, so prover and verifier agree on the generator basis. Block-body binding (anti-malleability) is provided separately by $\eta_{\text{FS}}$ (§5), not by this rebase.
 
 Crucially, `rangeProof.Vs.Clear()` is called after proving: the commitment $V$ carried by a standard Bulletproof is stripped, because the verifier reconstructs $V = \varphi$ from the set-membership proof's output. The range proof proves "$v \ge v_{\min}$ for the value committed in $\varphi$" — not for a separate commitment.
 
@@ -306,33 +317,57 @@ ProofOfStake::VerifyKernelHash(range_proof, kernel_hash, next_target, eta_phi, s
 
 ## 5. Block-level bindings (anti-grinding, anti-malleability)
 
-Two entropy inputs, both content-bound:
+The two proof seeds have **separate, deliberately disjoint** roles. $\eta_{\text{FS}}$ (the Fiat-Shamir challenge) carries the *block-body signature*; $\eta_\varphi$ (the generator rebase) carries *unlinkability* and must be ungrindable. Mixing the two — e.g. deriving the generators from the block body — would make $\varphi$ (and hence the kernel) grindable through the transaction list, so they are kept apart.
 
-### `eta_fiat_shamir`
-
-```cpp
-blsct::CalculateSetMemProofRandomness(pindexPrev) {
-    HashWriter ss{};
-    ss << pindexPrev->GetBlockHash() << pindexPrev->nStakeModifier;
-    return H(ss);
-}
-```
-
-Binds the proof's Fiat-Shamir transcript to the *parent* block's hash + stake modifier. Cannot be changed without forking off a different ancestor.
-
-### `eta_phi`
+### `eta_fiat_shamir` — signs the block body
 
 ```cpp
-blsct::CalculateSetMemProofGeneratorSeed(pindexPrev, block) {
+blsct::CalculateSetMemProofRandomness(pindexPrev, block) {
     HashWriter ss{};
-    ss << pindexPrev->nHeight
+    ss << pindexPrev->GetBlockHash()
        << pindexPrev->nStakeModifier
        << TX_NO_WITNESS(block.vtx);
     return H(ss);
 }
 ```
 
-Binds $(g_2, h_3)$ — the rebase generators — to the block's **entire transaction list** (non-witness serialisation). The proof therefore signs the block. Any tampering with `vtx` changes $\eta_\varphi$, which changes $(g_2, h_3)$, which invalidates $\varphi$ and the range-proof generators simultaneously. This is the *"proof acts as a signature over the specific block"* clause in the paper.
+$$
+\eta_{\text{FS}} = H\bigl(\text{parentHash} \mathbin\Vert \text{parentStakeModifier} \mathbin\Vert \text{TX\_NO\_WITNESS}(\text{vtx})\bigr).
+$$
+
+It binds the parent block (no cross-height replay) **and** the block's entire transaction list. $\eta_{\text{FS}}$ feeds the proof's Fiat-Shamir transcript (`GenInitialFiatShamir`), so the resulting challenges — and the whole proof — are valid only for this exact `vtx`. Tampering with any transaction changes $\eta_{\text{FS}}$ and invalidates the proof: **the proof is a signature over the block body.** Because $\eta_{\text{FS}}$ feeds only the challenge, never the generators, it grants no grinding leverage over $\varphi$ or the kernel.
+
+### `eta_phi` — ungrindable generator rebase
+
+```cpp
+blsct::CalculateSetMemProofGeneratorSeedV2(pindexPrev) {
+    HashWriter ss{};
+    ss << pindexPrev->nHeight
+       << pindexPrev->nStakeModifier
+       << pindexPrev->GetBlockHash();
+    return H(ss);
+}
+```
+
+$$
+\eta_\varphi = H\bigl(\text{parentHeight} \mathbin\Vert \text{parentStakeModifier} \mathbin\Vert \text{parentHash}\bigr).
+$$
+
+It rebases the set-membership / range-proof generators $(g_2, h_3)$ from **fixed parent state only**. Consequences:
+
+-   **Ungrindable.** $\varphi = h_3^m g_2^f$ depends on $(g_2, h_3)$, which now depend only on the parent. A staker cannot vary $\varphi$ for a given coin by reshaping the block, so the kernel input $\varphi$ (§4) is fixed per (coin, parent) and cannot be ground.
+-   **Still unlinkable.** $(g_2, h_3)$ change every block height (each height has a distinct parent), so the same coin produces a different $\varphi$ in every block it stakes. By DDH in $\mathbb{G}$ those images are uncorrelatable. A coin stakes at most once per height it wins, so the per-height-constant rebase is never a linkage.
+
+### Future-time cap
+
+Because the kernel binds $\text{bucket}_{16}(\text{time})$ and the block's own `nTime` is staker-chosen, a wide future-time window would let a staker pre-compute many not-yet-valid kernel buckets at once. PoPS caps how far a PoS block's timestamp may lead the validator's clock:
+
+```cpp
+// src/blsct/pos/helpers.h
+static constexpr int64_t POPS_MAX_FUTURE_BLOCK_TIME = 6 * POPS_TIME_GRANULARITY_SECONDS; // 96 s
+```
+
+`ContextualCheckBlockHeader` rejects a PoS block whose time exceeds `now + POPS_MAX_FUTURE_BLOCK_TIME` (96 s ≈ 6 buckets), versus the generic 2-hour limit for non-PoS headers. Honest stakers build at `curtime ≈ now` and are unaffected; a grinder is bounded to ~6 future buckets per slot. The block's `nTime` still feeds the kernel (advancing real time reveals fresh buckets — essential for liveness when a slot has no winner), but the reachable set is small and bounded.
 
 ### Stake modifier
 
@@ -344,11 +379,11 @@ Binds $(g_2, h_3)$ — the rebase generators — to the block's **entire transac
 
 From `ProofOfStakeLogic::Verify`:
 
-1.  Load staked commitment set from the coins view at the **block's hash** — gets the set as it stood when the block was connected.
-2.  **Reject** if set size < 2 (anti-deanonymisation).
-3.  Recompute $\eta_{\text{FS}} = H(\text{prevHash} \mathbin\Vert \text{prevStakeModifier})$.
-4.  Recompute $\eta_\varphi = H(\text{prevHeight} \mathbin\Vert \text{prevStakeModifier} \mathbin\Vert \text{TX\_NO\_WITNESS(vtx)})$.
-5.  Recompute $\text{KH}$ and $T_{\text{pos}}$.
+1.  Sample the staked commitment ring from the coins view using $\text{ringSeed}$ (§2) — the same deterministic sample the prover used.
+2.  **Reject** if the sampled ring size < 2 (anti-deanonymisation).
+3.  Recompute $\eta_{\text{FS}} = H(\text{prevHash} \mathbin\Vert \text{prevStakeModifier} \mathbin\Vert \text{TX\_NO\_WITNESS(vtx)})$.
+4.  Recompute $\eta_\varphi = H(\text{prevHeight} \mathbin\Vert \text{prevStakeModifier} \mathbin\Vert \text{prevHash})$.
+5.  Recompute $\text{KH} = H(\dots \mathbin\Vert \varphi)$ from the proof's $\varphi$, and $T_{\text{pos}}$.
 6.  Call `block.posProof.Verify(staked_commitments, eta_fiat_shamir, eta_phi, kernel_hash, next_target)`:
     -   Verify the set-membership sub-proof → returns `VALID` / `SM_INVALID`.
     -   Reconstruct the range proof with $\varphi$ as its value commitment and rebased generators; verify → `VALID` / `RP_INVALID`.
@@ -450,7 +485,7 @@ Code path: [`navio-staker.cpp`](https://github.com/nav-io/navio-core/blob/master
 | Total **number of active stakers**                  | Publicly visible (size of `stakedCommitments` set)           |
 | Total **locked supply**                             | Publicly visible (sum over OP_LOCKSTAKE outputs' commitments is hidden, but count of staked outputs is not) |
 | **Double-staking** protection                       | Enforced by UTXO set — a locked commitment is spent once it leaves the set, preventing a proof that reuses it against a later block (the commitment will no longer appear in $\mathbf{Y}$). |
-| **Grinding** (trying many `nTime`'s)                 | Bounded by the kernel-hash target, same way as classical PoS; attacker still needs a valid `phi` with a real $m$.|
+| **Grinding** (forging extra lottery draws)           | All kernel/ring inputs are seeded from fixed parent state except a bucketed time bounded by a 96 s future cap (§5, §12.2). A staker reaches ~6 kernels per slot, not an open-ended sweep; $\varphi$ and the ring cannot be ground at all. Stake weight stays proportional to total holdings. |
 | **Long-range attacks**                              | Mitigated by weak-subjectivity checkpoints (paper §9 security considerations) — standard PoS-style assumption. |
 | **Range-proof forgery** (fake $v \ge v_{\min}$)      | Computationally infeasible under Bulletproofs++ soundness.   |
 | **Rogue-key attack** on aggregated BLS balance sig   | Prevented by signing the constant message `"BLSCTBALANCE"` combined with a valid Bulletproofs range proof; an attacker cannot forge without the secret mask. |
@@ -459,7 +494,7 @@ Code path: [`navio-staker.cpp`](https://github.com/nav-io/navio-core/blob/master
 
 ## 12. Consensus hardening rules
 
-The following rules are part of the PoPS consensus design. Each closes a specific class of attack on the stake-eligibility, grinding, or long-range-attack surface and is gated per-network via `Consensus::Params::fPoPSHardened` (enabled on mainnet, signet, regtest, blsctregtest; disabled on testnet whose historical chain predates these rules). Slashing is out of scope for the current design and is tracked separately — see [Slashing (future work)](slashing.md).
+The following rules are part of the PoPS consensus design. Each closes a specific class of attack on the stake-eligibility, grinding, or long-range-attack surface. They are gated by height via `Consensus::Params::nPoPSKernelV2Height` (the kernel/grinding rules of §12.2, active on mainnet from genesis and on testnet from a scheduled height) and by `Consensus::Params::fPoPSHardened` (the saturation and subgroup rules). On a network whose historical chain predates a rule, blocks below its activation point validate under that network's historical parameters. Slashing is out of scope for the current design and is tracked separately — see [Slashing (future work)](slashing.md).
 
 ### 12.1. Saturating `min_value` extraction
 
@@ -467,10 +502,14 @@ The following rules are part of the PoPS consensus design. Each closes a specifi
 
 ### 12.2. Grinding surface reduction
 
--   **Time bucketing.** `CalculateKernelHash` quantises the staker-chosen `block.nTime` into 16-second buckets (`POPS_TIME_GRANULARITY_SECONDS`). Per-slot grinding attempts drop by `60/16 ≈ 3.75×` with no meaningful effect on retarget dynamics.
--   **Chain-work binding.** `CalculateKernelHash(pindexPrev, block)` hashes `pindexPrev->nChainWork` alongside the other kernel inputs. Two forks diverging from a common ancestor disagree on `nChainWork` immediately, so grinding effort on one fork does not carry to a parallel private branch.
+A grinding attacker boosts their block rate above their stake share by cheaply trying many *independent* kernel hashes per slot. PoPS removes every cheap source of kernel variation by seeding each input from fixed prior chain state, leaving only a small, bounded time component:
 
-Both rules are active when `fPoPSHardened = true`; testnet (`fPoPSHardened = false`) runs the pre-hardening kernel to keep its historical chain valid.
+-   **Ungrindable $\varphi$.** The kernel binds $\varphi$, but $\varphi$'s generators are rebased from $\eta_\varphi$ — derived from parent state only (§5). A staker cannot vary $\varphi$ for a given coin by reshaping the block, so the dominant grinding axis (an unbounded sweep over block contents) is closed.
+-   **Ungrindable ring.** The staked-commitment ring is seeded from `stakeModifier` + a 128-block-deep ancestor (§2), neither of which the parent-block producer controls. A staker cannot grind which competitors are sampled into the ring.
+-   **Time bucketing + future cap.** `block.nTime` enters the kernel only as a 16-second bucket (`POPS_TIME_GRANULARITY_SECONDS`), and a PoS block may lead the clock by at most `POPS_MAX_FUTURE_BLOCK_TIME = 96 s` (§5). Together these bound the reachable kernels per slot to ~6, while still letting real time advance buckets for liveness.
+-   **Chain-work binding.** The kernel hashes `pindexPrev->nChainWork`. Two forks diverging from a common ancestor disagree on `nChainWork` immediately, so grinding effort on one fork does not carry to a parallel private branch.
+
+These rules activate at `Consensus::Params::nPoPSKernelV2Height` (mainnet: from genesis; testnet: a scheduled height). Blocks below that height on a network that predates the rules validate under the network's historical parameters.
 
 ### 12.3. Long-range-attack mitigation
 
@@ -501,7 +540,7 @@ The rules above close specific attack surfaces within the PoPS threat model. The
 navio-core/
 ├── src/blsct/pos/
 │   ├── pos.{h,cpp}            Kernel hash, retarget, stake modifier, entropy binding
-│   ├── helpers.{h,cpp}        CalculateKernelHash
+│   ├── helpers.{h,cpp}        Kernel hash (binds phi), time bucketing, future cap, ring-seed depth
 │   ├── proof.{h,cpp}          ProofOfStake class: combined (set-mem, range) proof
 │   └── proof_logic.{h,cpp}    Create / Verify wrappers against CCoinsViewCache
 ├── src/blsct/set_mem_proof/

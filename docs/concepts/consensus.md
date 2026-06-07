@@ -24,8 +24,8 @@ Classical PoS reveals who is staking (kernel-hash math uses the UTXO, which is p
 
 -   **Pedersen-committed stake amounts** on every staked output — amount is hidden.
 -   **Modified RingCT 3.0 set-membership proof** over the committed set — staker identity hidden.
--   **Bulletproofs++ range proof** against a per-block minimum-value target — eligibility provable in ZK.
--   **Block-bound entropy** ($\eta_{\text{FS}}$ from the parent block, $\eta_\varphi$ from the block's tx list) — no grinding, no replay, no cross-block linkage of a single staker's blocks.
+-   **Bulletproofs++ range proof** against a per-block, per-commitment minimum-value target — eligibility provable in ZK, with the kernel binding each commitment's image so stake weight is proportional to total holdings.
+-   **Block-bound entropy** — $\eta_{\text{FS}}$ binds the parent block and the block's transaction list (so the proof signs the body); $\eta_\varphi$ and the ring seed derive only from fixed prior chain state (so neither the proof image nor the anonymity ring can be ground). Together: no grinding, no replay, no cross-block linkage of a single staker's blocks.
 
 Full math, verifier equations, and implementation walk-through: [BLSCT → PoPS](../blsct/pops.md).
 

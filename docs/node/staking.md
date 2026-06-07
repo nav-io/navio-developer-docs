@@ -64,7 +64,7 @@ navio-staker -testnet -wallet=wallet
 
 Keep it running. It will:
 
-1.  Call `getblocktemplate` to learn the current `staked_commitments` set, `eta_fiat_shamir`, `eta_phi`, `prev_time`, `modifier`, `bits`, `curtime`.
+1.  Call `getblocktemplate` to learn the current sampled `staked_commitments` ring, `eta_fiat_shamir`, `eta_phi`, `prev_time`, `modifier`, `prev_chainwork`, `pops_hardened`, `pops_bind_phi`, `bits`, `curtime`. The node computes the ring seed, `eta_phi`, and `eta_fiat_shamir` exactly as consensus will, so the staker uses them verbatim. `pops_bind_phi` tells the staker to build the V2 kernel (which binds the commitment image); it must match consensus or the produced block is rejected.
 2.  For each locked commitment held by this wallet, check membership in the returned set.
 3.  Construct a `blsct::ProofOfStake` with the hidden stake amount and blinding factor.
 4.  Self-verify, then `submitblock`.
