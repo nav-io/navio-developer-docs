@@ -28,9 +28,9 @@ Design paper (initial reference, shape differs in implementation):
 | $\{H_i\}_{i<N}$                        | $N = 2^{10}$ generator vector for the inner-product argument.                                     |
 | $N$                                    | Maximum commitment-set size the setup supports (`SetMemProofSetup::N = 1024`).                    |
 | $\mathbf{Y}^n = (Y_1, \dots, Y_n)$      | Staked commitment set at the tip of the parent block.                                             |
-| $\sigma = h_3^m g_2^f$                 | Prover's own commitment being shown to lie in $\mathbf{Y}^n$.                                      |
+| $\sigma = H^m G^f$                     | Prover's own staked commitment in the original Pedersen basis, being shown to lie in $\mathbf{Y}^n$. |
 | $(m, f)$                               | Committed value (stake amount) and blinding factor.                                                |
-| $\varphi = h_3^m \cdot g_2^f$           | **Set element image** — re-randomised copy of $\sigma$ under fresh generators $(g_2, h_3)$.        |
+| $\varphi = g_2^m \cdot h_3^f$           | **Set element image** — same opening $(m, f)$ as $\sigma$, but under fresh generators $(g_2, h_3)$. |
 | $\eta_{\text{FS}}$                     | Fiat-Shamir entropy. Binds the proof to the parent block **and** to this block's transaction list, so the proof is a signature over the block body (§5). |
 | $\eta_\varphi$                         | Generator-rebase seed for the set-membership / range proof. Derived only from fixed parent state, so the rebased generators — and hence $\varphi$ — cannot be ground (§5). |
 | $\text{KH}$                            | 32-byte kernel hash — per-commitment lottery input, see §4.                                        |
@@ -125,7 +125,7 @@ $$
 **Set element image.**
 
 $$
-\varphi = h_3^m g_2^f.
+\varphi = g_2^m h_3^f.
 $$
 
 Because $(g_2, h_3)$ are rebased from $\eta_\varphi$ (derived from the parent block, so distinct at every height — see §5), $\varphi$ is unlinkable to $\sigma$: two blocks staked by the same UTXO produce different $\varphi$, yet both validate against the same $\sigma \in \mathbf{Y}$.
@@ -355,7 +355,7 @@ $$
 
 It rebases the set-membership / range-proof generators $(g_2, h_3)$ from **fixed parent state only**. Consequences:
 
--   **Ungrindable.** $\varphi = h_3^m g_2^f$ depends on $(g_2, h_3)$, which now depend only on the parent. A staker cannot vary $\varphi$ for a given coin by reshaping the block, so the kernel input $\varphi$ (§4) is fixed per (coin, parent) and cannot be ground.
+-   **Ungrindable.** $\varphi = g_2^m h_3^f$ depends on $(g_2, h_3)$, which now depend only on the parent. A staker cannot vary $\varphi$ for a given coin by reshaping the block, so the kernel input $\varphi$ (§4) is fixed per (coin, parent) and cannot be ground.
 -   **Still unlinkable.** $(g_2, h_3)$ change every block height (each height has a distinct parent), so the same coin produces a different $\varphi$ in every block it stakes. By DDH in $\mathbb{G}$ those images are uncorrelatable. A coin stakes at most once per height it wins, so the per-height-constant rebase is never a linkage.
 
 ### Future-time cap
