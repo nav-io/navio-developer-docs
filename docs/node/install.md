@@ -19,7 +19,7 @@ Standard Bitcoin Core toolchain plus BLSCT deps (bundled in-tree via `depends/`)
 
 ```bash
 sudo apt-get install -y \
-    build-essential libtool autotools-dev automake pkg-config \
+    build-essential cmake ninja-build pkg-config \
     libssl-dev libevent-dev bsdmainutils \
     libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
     libboost-test-dev libboost-thread-dev \
@@ -29,7 +29,7 @@ sudo apt-get install -y \
 **macOS (Homebrew):**
 
 ```bash
-brew install automake libtool boost pkg-config libevent miniupnpc zeromq sqlite
+brew install cmake ninja boost pkg-config libevent miniupnpc zeromq sqlite
 ```
 
 ### Build
@@ -37,46 +37,46 @@ brew install automake libtool boost pkg-config libevent miniupnpc zeromq sqlite
 ```bash
 git clone https://github.com/nav-io/navio-core.git
 cd navio-core
-./autogen.sh
-./configure --enable-wallet --with-gui=no
-make -j"$(nproc)"
-sudo make install    # optional; installs to /usr/local/bin
+cmake -B build -G Ninja
+cmake --build build
+sudo cmake --install build    # optional; installs to /usr/local/bin
 ```
 
-Binaries land in `src/` if you skip `make install`:
+Binaries land in `build/bin/` if you skip `cmake --install`:
 
--   `src/naviod`
--   `src/navio-cli`
--   `src/navio-staker`
--   `src/navio-wallet`
--   `src/navio-tx`
+-   `build/bin/naviod`
+-   `build/bin/navio-cli`
+-   `build/bin/navio-staker`
+-   `build/bin/navio-wallet`
+-   `build/bin/navio-tx`
 
 ### Build options
 
-| Flag                           | Effect                                                    |
-| ------------------------------ | --------------------------------------------------------- |
-| `--enable-wallet`              | Enable wallet (default on)                                |
-| `--disable-wallet`             | Node-only (smaller binary, no wallet/RPC wallet cmds)     |
-| `--with-gui=no`                | Skip Qt GUI (default, recommended for servers)            |
-| `--enable-debug`               | Debug symbols, assertion checks                           |
-| `--enable-tests`               | Build unit tests                                          |
-| `--enable-fuzz`                | Build fuzz harnesses                                      |
-| `--enable-reduce-exports`      | Smaller binary via symbol hiding                          |
-| `--enable-zmq`                 | ZMQ pub/sub interface                                     |
+Pass to the first `cmake -B build -G Ninja` invocation:
 
-Full list: `./configure --help`.
+| Flag                                | Effect                                                |
+| ----------------------------------- | ----------------------------------------------------- |
+| `-DENABLE_WALLET=ON` (default)      | Enable wallet                                         |
+| `-DENABLE_WALLET=OFF`               | Node-only (smaller binary, no wallet/RPC wallet cmds) |
+| `-DBUILD_TESTS=ON` (default)        | Build unit tests                                      |
+| `-DBUILD_TESTS=OFF`                 | Skip unit tests                                       |
+| `-DBUILD_BENCH=OFF`                 | Skip benchmark binaries                               |
+| `-DBUILD_FOR_FUZZING=ON`            | Build fuzz harnesses                                  |
+| `-DCMAKE_BUILD_TYPE=Debug`          | Debug symbols, assertion checks                       |
+| `-DREDUCE_EXPORTS=ON`               | Smaller binary via symbol hiding                      |
+| `-DWITH_ZMQ=ON`                     | ZMQ pub/sub interface                                 |
+
+Full list: `cmake -B build -LH`.
 
 ### Cross-compilation
 
 Navio inherits Bitcoin Core's `depends/` system. Reproducible Linux build on another Linux box:
 
 ```bash
-cd depends
-make HOST=x86_64-pc-linux-gnu -j"$(nproc)"
-cd ..
-./autogen.sh
-CONFIG_SITE="$PWD/depends/x86_64-pc-linux-gnu/share/config.site" ./configure --prefix=/
-make -j"$(nproc)"
+make -C depends HOST=x86_64-pc-linux-gnu
+cmake -B build -G Ninja \
+    --toolchain "$PWD/depends/x86_64-pc-linux-gnu/toolchain.cmake"
+cmake --build build
 ```
 
 Supported `HOST` triplets: `x86_64-pc-linux-gnu`, `aarch64-linux-gnu`, `x86_64-w64-mingw32` (Windows), `x86_64-apple-darwin` (macOS, needs Apple SDK). Navio supports [Guix](https://guix.gnu.org/) reproducible builds — see `contrib/guix/`.
@@ -87,8 +87,8 @@ Supported `HOST` triplets: `x86_64-pc-linux-gnu`, `aarch64-linux-gnu`, `x86_64-w
 # install build deps (see above)
 git clone https://github.com/nav-io/navio-core.git ~/navio-core
 cd ~/navio-core
-./autogen.sh && ./configure --enable-wallet --with-gui=no && make -j"$(nproc)"
-sudo make install
+cmake -B build -G Ninja && cmake --build build
+sudo cmake --install build
 
 # config
 mkdir -p ~/.navio
@@ -156,7 +156,7 @@ Example `Dockerfile`:
 FROM debian:bookworm-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libtool autotools-dev automake pkg-config \
+    build-essential cmake ninja-build pkg-config \
     libssl-dev libevent-dev bsdmainutils \
     libboost-all-dev \
     libminiupnpc-dev libzmq3-dev libsqlite3-dev \
@@ -165,8 +165,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN git clone --depth 1 https://github.com/nav-io/navio-core.git /src
 WORKDIR /src
-RUN ./autogen.sh && ./configure --enable-wallet --with-gui=no && make -j"$(nproc)"
-RUN strip src/naviod src/navio-cli src/navio-staker src/navio-wallet
+RUN cmake -B build -G Ninja && cmake --build build
+RUN strip build/bin/naviod build/bin/navio-cli build/bin/navio-staker build/bin/navio-wallet
 
 FROM debian:bookworm-slim
 
@@ -177,10 +177,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tini ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /src/src/naviod        /usr/local/bin/
-COPY --from=builder /src/src/navio-cli     /usr/local/bin/
-COPY --from=builder /src/src/navio-staker  /usr/local/bin/
-COPY --from=builder /src/src/navio-wallet  /usr/local/bin/
+COPY --from=builder /src/build/bin/naviod        /usr/local/bin/
+COPY --from=builder /src/build/bin/navio-cli     /usr/local/bin/
+COPY --from=builder /src/build/bin/navio-staker  /usr/local/bin/
+COPY --from=builder /src/build/bin/navio-wallet  /usr/local/bin/
 
 RUN useradd -r -m -s /bin/bash navio
 USER navio
