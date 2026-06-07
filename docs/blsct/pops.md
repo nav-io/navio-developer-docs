@@ -262,8 +262,6 @@ $$
 \text{KH} = H\bigl(\text{prevTime} \mathbin\Vert \text{stakeModifier} \mathbin\Vert \text{prevChainWork} \mathbin\Vert \text{bucket}_{16}(\text{time}) \mathbin\Vert \varphi\bigr).
 $$
 
-Binding $\varphi$ is what makes stake weight **proportional to total holdings** rather than to a single commitment. Without it, the kernel would be identical for every commitment a node holds in a given time bucket, so only a node's single largest commitment would matter. With it, each commitment $\varphi$ gets its own uniform draw, and a node's per-slot win expectation is the sum over its commitments — i.e. proportional to its total staked value (see §4, eligibility).
-
 Every field a staker might grind is committed here and is fixed by prior chain state, *except* the bucketed time:
 
 -   $\text{prevTime}$, $\text{stakeModifier}$, $\text{prevChainWork}$ — fixed by the parent block.
@@ -483,7 +481,7 @@ Code path: [`navio-staker.cpp`](https://github.com/nav-io/navio-core/blob/master
 | Staker **identity** on a given block                | Hidden (set-membership proof)                                |
 | Linkage **across** blocks by the same staker        | Hidden (DDH-protected $\varphi$ rebase per block)            |
 | Total **number of active stakers**                  | Publicly visible (size of `stakedCommitments` set)           |
-| Total **locked supply**                             | Publicly visible (sum over OP_LOCKSTAKE outputs' commitments is hidden, but count of staked outputs is not) |
+| Total **locked supply**                             | Publicly hidden (sum over OP_LOCKSTAKE outputs' commitments is hidden, but can be inferred through extapolation of your own node staking yield) |
 | **Double-staking** protection                       | Enforced by UTXO set — a locked commitment is spent once it leaves the set, preventing a proof that reuses it against a later block (the commitment will no longer appear in $\mathbf{Y}$). |
 | **Grinding** (forging extra lottery draws)           | All kernel/ring inputs are seeded from fixed parent state except a bucketed time bounded by a 96 s future cap (§5, §12.2). A staker reaches ~6 kernels per slot, not an open-ended sweep; $\varphi$ and the ring cannot be ground at all. Stake weight stays proportional to total holdings. |
 | **Long-range attacks**                              | Mitigated by weak-subjectivity checkpoints (paper §9 security considerations) — standard PoS-style assumption. |
