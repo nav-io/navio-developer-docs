@@ -50,6 +50,9 @@ jobs:
                   retention-days: 7
 
             - name: Comment PR with download link
+              # Fork PRs run with a read-only GITHUB_TOKEN, so createComment 403s.
+              # Only comment on same-repo PRs where the token has pull-requests: write.
+              if: github.event.pull_request.head.repo.full_name == github.repository
               uses: actions/github-script@v7
               with:
                   script: |
