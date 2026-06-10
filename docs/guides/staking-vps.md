@@ -46,11 +46,8 @@ echo '/swap none swap sw 0 0' >> /etc/fstab
 ## Install `naviod` + `navio-staker`
 
 ```bash
-apt install -y build-essential cmake ninja-build pkg-config \
-    libssl-dev libevent-dev bsdmainutils \
-    libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
-    libboost-test-dev libboost-thread-dev \
-    libminiupnpc-dev libzmq3-dev libsqlite3-dev git
+apt install -y build-essential cmake ninja-build pkgconf python3 git \
+    libevent-dev libboost-dev libsqlite3-dev libzmq3-dev
 
 useradd -m -s /bin/bash navio
 sudo -u navio git clone https://github.com/nav-io/navio-core.git /home/navio/navio-core
