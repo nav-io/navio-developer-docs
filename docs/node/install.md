@@ -19,17 +19,17 @@ Standard Bitcoin Core toolchain plus BLSCT deps (bundled in-tree via `depends/`)
 
 ```bash
 sudo apt-get install -y \
-    build-essential cmake ninja-build pkg-config \
-    libssl-dev libevent-dev bsdmainutils \
-    libboost-system-dev libboost-filesystem-dev libboost-chrono-dev \
-    libboost-test-dev libboost-thread-dev \
-    libminiupnpc-dev libzmq3-dev libsqlite3-dev git
+    build-essential cmake ninja-build pkgconf python3 git \
+    libevent-dev libboost-dev \
+    libsqlite3-dev libzmq3-dev
 ```
+
+`libsqlite3-dev` is for the wallet; `libzmq3-dev` only if you want the ZMQ interface. (Navio is CLI-only and no longer needs OpenSSL, miniupnpc, or compiled Boost libraries — only the Boost headers.)
 
 **macOS (Homebrew):**
 
 ```bash
-brew install cmake ninja boost pkg-config libevent miniupnpc zeromq sqlite
+brew install cmake ninja pkgconf boost libevent sqlite zeromq
 ```
 
 ### Build
@@ -156,10 +156,8 @@ Example `Dockerfile`:
 FROM debian:bookworm-slim AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake ninja-build pkg-config \
-    libssl-dev libevent-dev bsdmainutils \
-    libboost-all-dev \
-    libminiupnpc-dev libzmq3-dev libsqlite3-dev \
+    build-essential cmake ninja-build pkgconf python3 \
+    libevent-dev libboost-dev libzmq3-dev libsqlite3-dev \
     git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
@@ -171,9 +169,8 @@ RUN strip build/bin/naviod build/bin/navio-cli build/bin/navio-staker build/bin/
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libboost-system1.81 libboost-filesystem1.81 libboost-thread1.81 \
     libevent-2.1-7 libevent-pthreads-2.1-7 \
-    libminiupnpc17 libzmq5 libsqlite3-0 \
+    libzmq5 libsqlite3-0 \
     tini ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
