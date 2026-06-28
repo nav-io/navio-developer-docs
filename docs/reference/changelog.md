@@ -12,7 +12,7 @@ Until the pipeline runs, consult:
 Notable items to watch for:
 
 -   Consensus-breaking upgrades (announced with target activation heights).
--   Mainnet transition release (expected around Navcoin block 10,500,000, ~end June 2026).
+-   **0.1.0** — first stable release; activates **mainnet** (genesis 2026-07-01 13:00 UTC, genesis hash `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13`).
 -   BLSCT protocol version bumps.
 -   RPC additions / deprecations.
 

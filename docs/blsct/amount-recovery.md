@@ -25,7 +25,7 @@ The sender has $r$ and $V_{a,i}$; the receiver has $v$ and $R$. Both compute the
 
 During `Prove` the sender packs:
 
--   A 64-bit user message `msg1` and the 64-bit amount `vs[0]` into a single scalar:
+-   The first 23 bytes of the user message (`msg1`, `Setup::message_1_max_size`) and the 64-bit amount `vs[0]` into a single scalar:
 
     $$
     \text{msg1\_vs0} \;=\; (\text{msg1} \ll 64) \;\vert\; \text{vs}[0] \quad (\bmod\, r)
@@ -39,7 +39,7 @@ During `Prove` the sender packs:
 
     where $z^{(2)}_{\text{asc}}$ and $y^{mn+1}$ come from `ComputePowers(y, z, m, n)` — the deterministic Fiat–Shamir challenges of the proof.
 
--   Packs a second 64-bit user message `msg2` (the memo) into $\tau_x$:
+-   Packs the remainder of the message (`msg2`, bytes past the first 23 — the memo continuation) into $\tau_x$:
 
     $$
     \tau_x \;=\; \tau_2 \cdot y^2 \;+\; (\tau_1 + \text{msg2}) \cdot y \;+\; z^2 \cdot \gamma.
@@ -82,7 +82,7 @@ If the check fails, the output is not this wallet's (the view tag was a 1-in-65 
 
 ## Memo recovery
 
-As shown above, the memo is the 32-byte big-endian encoding of the recovered `msg2` scalar (`msg2_scalar.GetVch(true)`). There is **no separate memo ciphertext on the wire** and no stream-cipher keystream — the memo rides in $\tau_x$ additively alongside the amount in $\alpha_{\text{hat}}$. Memos are therefore bounded by one scalar's worth of information (~256 bits ≈ 32 bytes).
+The recovered message is the concatenation of `msg1` (the first 23 bytes, unpacked from `msg1_vs0 >> 64`) and `msg2` (the remainder, unpacked from $\tau_x$) — both via `GetVch(true)`. There is **no separate memo ciphertext on the wire** and no stream-cipher keystream — `msg1` rides in $\alpha_{\text{hat}}$ alongside the amount, `msg2` in $\tau_x$. Total message capacity is `Setup::max_message_size = 54` bytes (`message_1_max_size = 23` in `msg1` plus the rest in `msg2`).
 
 ## RPC for third-party recovery
 

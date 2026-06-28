@@ -24,7 +24,13 @@ testnet.nav.io
 testnet2.nav.io
 ```
 
-Mainnet bootstrap DNS seeds are defined in `src/chainparams.cpp` in [navio-core](https://github.com/nav-io/navio-core/blob/master/src/chainparams.cpp). Always consult the current release.
+Mainnet bootstrap is defined in [navio-core](https://github.com/nav-io/navio-core/blob/master/src/chainparams.cpp). The current mainnet seeds are:
+
+```
+seed.nav.io
+```
+
+In addition, a hardcoded fixed bootstrap node `blocks.nav.io` (`168.119.249.67:48470`) is baked into `src/chainparamsseeds.h` as the launch bootstrap seed; this list will be regenerated and expanded as more stable nodes come online. Always consult the current release.
 
 Operators can override with `addnode=` lines in `navio.conf` or with `-addnode=<host>` on the command line.
 

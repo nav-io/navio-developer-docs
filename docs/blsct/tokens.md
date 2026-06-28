@@ -17,12 +17,21 @@ The cleartext `token_id` reveals **which asset is moving** but not:
 
 Navio encodes two things in one format:
 
-| Kind      | Byte length | Layout                                                        |
-| --------- | ----------- | ------------------------------------------------------------- |
-| Collection (fungible) | 32 bytes (64 hex)    | Hash of metadata + totalSupply                      |
-| NFT item              | 40 bytes (80 hex)    | Collection (32) ‖ nft_id (8, big-endian)             |
+The on-chain `TokenId` (`src/ctokens/tokenid.h`) is a struct of two fields:
 
-Where collection id is `token_hash = H(metadata || totalSupply)`.
+```cpp
+class TokenId {
+    uint256  token;   // 32-byte collection id
+    uint64_t subid;   // NFT item id; UINT64_MAX sentinel == "not an NFT"
+};
+```
+
+| Kind      | Fields set                                  | Hex form                                |
+| --------- | ------------------------------------------- | --------------------------------------- |
+| Collection (fungible) | `token` set, `subid = UINT64_MAX` | 64 hex (the `token` field alone)  |
+| NFT item              | `token` set, `subid` = item index | 80 hex (`token` 32 B ‖ `subid` 8 B) |
+
+The collection id is **the hash of the collection's token public key**, not a hash of the metadata. At `createtoken` / `createnft` execution the chain computes `hash = predicate.GetPublicKey().GetHash()` and keys the token entry under it (`ExecutePredicate` in `src/blsct/tokens/predicate_exec.cpp`). Because the id is bound to the issuer's token-signing key — not to the metadata — two issuers with identical metadata and supply get **distinct** collection ids, and there is no metadata-collision surface.
 
 For a fungible send, the SDK accepts either:
 
@@ -43,9 +52,9 @@ A `createtoken` / `createnft` transaction:
 1.  The creator wallet derives a **token-signing key** from its master spending secret under a domain-separation tag specific to the token id.
 2.  Publishes a transaction with:
     -   Sufficient NAV input to cover the fee.
-    -   An output containing the collection metadata and the token pubkey = `token_scalar · G`.
+    -   A `CreateToken` predicate carrying the collection metadata, `totalSupply`, and the token pubkey `token_scalar · G`.
     -   A BLS signature under `token_scalar` committing to the metadata + totalSupply.
-3.  The block assigns the output hash as the collection's *on-chain identity*. The `tokenId` returned is `H(metadata || totalSupply)`.
+3.  At block validation the chain keys the collection under `hash = tokenPubKey.GetHash()` — the 32-byte `token` field of `TokenId`. The returned `tokenId` is therefore the hash of the token public key, and minting authority is whoever holds `token_scalar`.
 
 Only transactions signed under the collection's token-signing key can mint into it later. Lose the wallet, lose the ability to mint.
 
@@ -94,6 +103,19 @@ Implementers are free to use any schema — there is no enforced spec. Ecosystem
 ## On-chain cost
 
 Tokens add a small per-output overhead (typically 32–40 bytes for `token_id` plus any per-NFT metadata). NFT mints with rich metadata can be larger, but the amount is bounded by block size limits.
+
+## Security invariants
+
+Consensus rules enforced at `CreateToken` / mint validation (`ExecutePredicate` in `src/blsct/tokens/predicate_exec.cpp`) and in `TokenEntry::Mint` (`src/blsct/tokens/info.h`). These were hardened by recent navio-core fixes; a violating block is rejected.
+
+| # | Invariant | Where | Rationale |
+| - | --------- | ----- | --------- |
+| #286 | On `CreateToken`: `info.type` must be `TOKEN` (0) or `NFT` (1); `info.nTotalSupply >= 0`; and for `TOKEN` type, `nTotalSupply` must satisfy `MoneyRange()` (≤ `MAX_MONEY`). | `ExecutePredicate` | An unknown type serialises no supply state, leaving the token unmintable; a negative or oversized supply breaks the mint bounds checks. |
+| #285 | A `MintToken` predicate executes only against a `TOKEN`-type entry; `MintNft` only against an `NFT`-type entry. A type mismatch is rejected. | `ExecutePredicate` | `TokenEntry` serialises `nSupply` only for `TOKEN` entries and `mapMintedNft` only for `NFT` entries. A mismatched mint mutates in-memory state that is never persisted, so the supply cap resets to 0 on block reload — silent inflation. |
+| #284 | An NFT mint's `nftId` must satisfy `0 <= nftId < nTotalSupply`, compared in the unsigned (`uint64_t`) domain. | `ExecutePredicate` | The previous code cast `nftId` to a signed `CAmount`, letting ids ≥ 2⁶³ go negative and bypass the upper-bound check. |
+| #281 | `TokenEntry::Mint` enforces the supply cap without signed-overflow UB: it checks `amount <= nTotalSupply - nSupply` (and `amount >= -nSupply` on disconnect) instead of computing `amount + nSupply` first; all operands are required to be in `MoneyRange`. | `TokenEntry::Mint` | Computing the sum before the comparison could overflow signed `CAmount` (undefined behaviour) and bypass the cap. |
+
+Together these guarantee that a token's declared `nTotalSupply` is a hard, persisted ceiling: the entry's type is fixed and well-formed at creation, mints can only target a matching and correctly serialised entry, and the running supply can never exceed the cap or wrap around — whether checked at mint time or replayed on reload.
 
 ## RPC primitives
 

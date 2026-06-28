@@ -36,8 +36,8 @@ where $G$ is the amount generator for this output's `token_id` (so distinct toke
 
 **Amounts are not stored as a separate ciphertext blob.** They are embedded inside the Bulletproofs+ range proof via the prover scalars $\alpha_{\text{hat}}$ and $\tau_x$:
 
--   The 64-bit amount `vs[0]` and a 64-bit user message `msg1` are packed as `(msg1 << 64) | vs[0]` and added to the range-proof blinding: $\alpha = \text{H}_s(\eta, 1) + \text{msg1\_vs0}$, producing $\alpha_{\text{hat}}$ in the proof (see `MsgAmtCipher::ComputeAlpha` in `range_proof_logic.cpp`).
--   A second 64-bit user message `msg2` (the memo) is carried additively in $\tau_x$: the prover adds `msg2` into the linear term of the weighted-inner-product response (`MsgAmtCipher::ComputeTauX`).
+-   The 64-bit amount `vs[0]` and the first **23 bytes** of the user message (`msg1`, `Setup::message_1_max_size = 23`) are packed as `(msg1 << 64) | vs[0]` and added to the range-proof blinding: $\alpha = \text{H}_s(\eta, 1) + \text{msg1\_vs0}$, producing $\alpha_{\text{hat}}$ in the proof (see `MsgAmtCipher::ComputeAlpha` in `msg_amt_cipher.cpp`).
+-   The **remaining bytes** of the message (`msg2`, everything past the first 23) are carried additively in $\tau_x$: the prover adds `msg2` into the linear term of the weighted-inner-product response (`MsgAmtCipher::ComputeTauX`). Total message capacity is `Setup::max_message_size = 54` bytes (23 in `msg1` + the rest in `msg2`, both bounded by one $\mathbb{F}_r$ scalar each).
 -   The amount blinding factor $\gamma = \text{H}_s(\eta, 100)$ is deterministic, so no $\gamma$ ciphertext is needed.
 
 Amount recovery inverts these equations using the shared point $\eta$ (reconstructable from $v_r$ and $R$). See [amount recovery](amount-recovery.md) for the closed-form inversion and salt constants.

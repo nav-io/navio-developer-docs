@@ -28,9 +28,9 @@ Design paper (initial reference, shape differs in implementation):
 | $\{H_i\}_{i<N}$                        | $N = 2^{10}$ generator vector for the inner-product argument.                                     |
 | $N$                                    | Maximum commitment-set size the setup supports (`SetMemProofSetup::N = 1024`).                    |
 | $\mathbf{Y}^n = (Y_1, \dots, Y_n)$      | Staked commitment set at the tip of the parent block.                                             |
-| $\sigma = H^m G^f$                     | Prover's own staked commitment in the original Pedersen basis, being shown to lie in $\mathbf{Y}^n$. |
+| $\sigma = G^m H^f$                     | Prover's own staked commitment in the original Pedersen basis, being shown to lie in $\mathbf{Y}^n$. Amount $m$ rides on $G$, mask $f$ on $H$ — the same basis as the BLSCT output commitment (`Point sigma = gen.G * m + gen.H * f` in `proof.cpp`). |
 | $(m, f)$                               | Committed value (stake amount) and blinding factor.                                                |
-| $\varphi = g_2^m \cdot h_3^f$           | **Set element image** — same opening $(m, f)$ as $\sigma$, but under fresh generators $(g_2, h_3)$. |
+| $\varphi = g_2^m \cdot h_3^f$           | **Set element image** — same opening $(m, f)$ as $\sigma$, but under fresh generators $(g_2, h_3)$, where $g_2 = G$ and $h_3 = H$ are rebased per block (§5). |
 | $\eta_{\text{FS}}$                     | Fiat-Shamir entropy. Binds the proof to the parent block **and** to this block's transaction list, so the proof is a signature over the block body (§5). |
 | $\eta_\varphi$                         | Generator-rebase seed for the set-membership / range proof. Derived only from fixed parent state, so the rebased generators — and hence $\varphi$ — cannot be ground (§5). |
 | $\text{KH}$                            | 32-byte kernel hash — per-commitment lottery input, see §4.                                        |
@@ -47,9 +47,13 @@ Validators lock stake by publishing a BLSCT transaction whose output is tagged a
 
 -   An **unspent** staked commitment is flagged `STAKED_COMMITMENT_UNSPENT = 1`.
 -   A **spent / unlocked** one is flagged `STAKED_COMMITMENT_SPENT = 0` and purged from the set.
--   The set is keyed by the raw Pedersen commitment point $Y_i = v_i H + \gamma_i G \in \mathbb{G}$. The set has no owner labels — observers only see a list of 48-byte group elements.
+-   The set is keyed by the raw Pedersen commitment point $Y_i = v_i G + \gamma_i H \in \mathbb{G}$ (amount on $G$, mask on $H$ — same basis as $\sigma$ and the output commitment). The set has no owner labels — observers only see a list of 48-byte group elements.
 -   Consensus requires $|\mathbf{Y}^n| \ge 2$ to validate any PoPS block (`ProofOfStakeLogic::Verify` in [`src/blsct/pos/proof_logic.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/pos/proof_logic.cpp)). A single-commitment set would de-anonymise the staker.
 -   Set size is padded to the next power of two with "dummy" points $H_5(\text{"SET\_MEMBERSHIP\_DUMMY"} \mathbin\Vert i)$ before the proof — dummies lie in $\mathbb{G}$ with unknown openings, so extension adds no malleability surface (see `SetMemProofProver::ExtendYs`).
+
+#### No duplicate staked commitments ([#281](https://github.com/nav-io/navio-core/pull/281))
+
+Because the set is keyed by the raw point $Y_i$ (not an output-content hash) and carries no reference count, two distinct unspent staked outputs sharing the same $Y_i$ — i.e. the same value $v$ and blinding $\gamma$ — would collapse to a single map entry. Spending one would flip that point to `STAKED_COMMITMENT_SPENT` and silently evict the other still-live stake from the ring. Since $\gamma$ is wallet-chosen, a collision is grindable rather than merely accidental. Consensus therefore **rejects** any staked output whose $Y_i$ is already `STAKED_COMMITMENT_UNSPENT` in the pre-block chain state, or duplicated within the same block. Enforced in [`src/validation.cpp`](https://github.com/nav-io/navio-core/blob/master/src/validation.cpp) (`ConnectBlock`) and [`src/blsct/wallet/verification.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/verification.cpp) (`VerifyTxCoreImpl`, mempool); error `bad-txns-duplicate-staked-commitment`. Re-staking the same value simply requires a fresh $\gamma$.
 
 ### Ring sampling
 
@@ -110,7 +114,7 @@ $$
 h_2 = H_5(\mathbf{Y}), \qquad (g_2, h_3) = \text{GenFactory.Rebase}(\eta_\varphi).
 $$
 
-The comment in source explicitly notes: *"generators are swapped vs. paper — here $h_3 = G$ and $g_2 = H$"*. Pick $\alpha, \beta, \rho, r_\alpha, r_\tau, r_\beta \leftarrow \mathbb{F}_p$, vectors $\mathbf{s_L}, \mathbf{s_R} \leftarrow \mathbb{F}_p^n$ and compute
+A source comment in `set_mem_proof_prover.cpp` notes the generators are "swapped vs. paper," but the executable code binds $g_2 = \text{gens.G}$ and $h_3 = \text{gens.H}$ (`Point g2 = gens.G; Point h3 = gens.H; Point phi = h3 * f + g2 * m;`), i.e. $\varphi = G^m H^f$ — amount $m$ on $G$, mask $f$ on $H$, matching $\sigma$. (The comment's "$h_3 = G$, $g_2 = H$" is stale and contradicts the line below it; the code is authoritative.) Pick $\alpha, \beta, \rho, r_\alpha, r_\tau, r_\beta \leftarrow \mathbb{F}_p$, vectors $\mathbf{s_L}, \mathbf{s_R} \leftarrow \mathbb{F}_p^n$ and compute
 
 $$
 \begin{aligned}
@@ -271,7 +275,7 @@ Every field a staker might grind is committed here and is fixed by prior chain s
 
 ### Minimum-value target
 
-Let $T_{\text{pos}}$ be the current compact PoS target (`nBits` on the new block, derived by [`GetNextTargetRequired`](https://github.com/nav-io/navio-core/blob/master/src/blsct/pos/pos.cpp) via the same Bitcoin-style retarget math, timespan 30 min / spacing 60 s). Then
+Let $T_{\text{pos}}$ be the current compact PoS target (`nBits` on the new block, derived by [`GetNextTargetRequired`](https://github.com/nav-io/navio-core/blob/master/src/blsct/pos/pos.cpp) via the same Bitcoin-style retarget math, using each network's `nPosTargetTimespan` / `nPosTargetSpacing` — mainnet 3600 s / 120 s, testnet and `blsctregtest` 1800 s / 60 s; see the §2 table). Then
 
 $$
 v_{\min} = \text{SaturateToU64}\!\left(\left\lfloor \frac{\text{KH}}{T_{\text{pos}}} \right\rfloor\right).

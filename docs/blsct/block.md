@@ -35,6 +35,13 @@ Field order per `primitives/block.h`: `READWRITE(obj.posProof, obj.vtx)` after t
 
 The first transaction is the coinbase. Its single output is zero-value; the real staker reward is paid in the coinstake. `vin[0].prev_out` is the null marker (32 zero bytes).
 
+During the bootstrap PoW window (heights `2..110` on mainnet), the zero-value coinbase output **still carries a full Bulletproofs+ range proof and BLSCT keys** — the miner constructs it with `fAllowZeroValueRangeProof = true`.
+
+!!! note "Why a range proof on a zero-value coinbase"
+    Normally `CreateOutput()` collapses a `0` amount into an unspendable `OP_RETURN` with no range proof. But the coinbase still carries balance and output signatures that are folded into the block's aggregate signature check — an `OP_RETURN` output (no range proof, no keys) would have nothing to sign over and the aggregate verification would fail. Passing `fAllowZeroValueRangeProof = true` forces a proper BLSCT output so the signatures remain valid.
+
+The **block-1 coinbase mints the entire initial supply**.
+
 ## Coinstake (PoPS)
 
 Every block carries a `blsct::ProofOfStake posProof` field (see [`primitives/block.h`](https://github.com/nav-io/navio-core/blob/master/src/primitives/block.h)). Structural markers:
@@ -78,10 +85,31 @@ block.type = "PoPS"  # on BLSCT / PoPS chains
 
 BLSCT-aware outputs display as `Hidden` amounts. Transparent outputs (genesis-time bootstrap outputs that seed the PoPS staker set on testnet cuts, and OP_RETURN burns) show values normally. See [supply tracking](../explorer/supply.md).
 
+## Genesis block (mainnet)
+
+The mainnet genesis block (height `0`) is a plain unspendable `OP_RETURN` coinbase — **not** a BLSCT output. There is no range proof or BLSCT keys, because the genesis block is never connected to the UTXO set: `ConnectBlock()` in `validation.cpp` special-cases the genesis hash and returns early, so no spendable BLSCT output is ever needed.
+
+| Field             | Value                                                                |
+| ----------------- | -------------------------------------------------------------------- |
+| Block hash        | `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13`   |
+| Merkle root       | `96f8dfcc3c433012bc9d4b42e85fe543936609f87fce2cc9d5484383ee2f9aaf`   |
+| `nTime`           | `1782910800` (2026-07-01 13:00 UTC)                                  |
+| `nNonce`          | `0`                                                                  |
+| `nBits`           | `0x207fffff`                                                         |
+| `nVersion`        | `0x40000000` (BLSCT version bit)                                     |
+
+The coinbase `scriptSig` embeds a hidden message:
+
+```
+Privacy is the power to selectively reveal oneself to the world.
+```
+
+Both `nMinimumChainWork` and `defaultAssumeValid` are zero — this is a fresh chain with no checkpointed history.
+
 ## Serialisation
 
 -   `src/primitives/block.h` — `CBlock`, `CBlockHeader`.
 -   `src/blsct/pos/` — PoS / PoPS consensus rules.
 -   `src/consensus/params.h` — chain-level constants (block time, max size, activation heights).
 
-Current chainparams: mainnet uses a bootstrap PoW window through height `100`, then PoPS with `nPosTargetSpacing = 120` and `nBLSCTBlockReward = 8 NAV`; testnet uses a bootstrap PoW window through height `1000`, then PoPS with `nPosTargetSpacing = 60` and `nBLSCTBlockReward = 4 NAV`.
+Current chainparams: mainnet uses a bootstrap PoW window through height `110` (PoPS from height `111`), then PoPS with `nPosTargetSpacing = 120` and `nBLSCTBlockReward = 8 NAV`; testnet uses a bootstrap PoW window through height `1000`, then PoPS with `nPosTargetSpacing = 60` and `nBLSCTBlockReward = 4 NAV`.

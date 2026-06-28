@@ -10,7 +10,7 @@ CTransaction (BLSCT)
 ├── vin[]              CTxIn[]    (see below)
 ├── vout[]             CTxOut[]   BLSCT outputs — see "Output construction"
 ├── nLockTime          uint32     standard locktime
-└── txSignature        48 bytes   aggregated BLS signature
+└── txSignature        96 bytes   aggregated BLS signature (G_2 element)
 ```
 
 ## CTxIn
@@ -75,7 +75,9 @@ Independently of (and before) the aggregate-signature check, every BLSCT user tr
 nFee >= GetTransactionWeight(tx) * Consensus::Params::nBLSCTDefaultFee
 ```
 
-where `nFee` is the explicit `nValue` of the unique `PayFeePredicate` output and `nBLSCTDefaultFee` is the per-byte fee rate carried in chainparams (default 125 sat/byte on mainnet, testnet, and `blsctregtest`). Failing transactions are rejected with `blsct-fee-below-min`. This is the rule that makes the basic-scheme balance signature safe against output-malleability attacks; see [Consensus & supply → Consensus minimum-fee rule](../concepts/consensus.md#consensus-minimum-fee-rule) for the full security argument and the coinbase / aggregation exemptions.
+where `nFee` is the explicit `nValue` of the unique `PayFeePredicate` output and `nBLSCTDefaultFee` is the per-byte fee rate carried in chainparams (default 125 sat/byte on mainnet, testnet, and `blsctregtest`). Failing transactions are rejected with `blsct-fee-below-min`.
+
+The fee value is only counted when `out.scriptPubKey.IsFee()` is true — i.e. the output is a bare `OP_RETURN` burn (`VerifyTxCoreImpl` in `src/blsct/wallet/verification.cpp`). A `PayFeePredicate` carried on a spendable (non-`IsFee`) output is **not** counted toward `nFee`, so such a transaction fails the minimum-fee rule. This prevents fee evasion: an attacker cannot satisfy the minimum by routing the fee to an output they control and re-spending it — the fee must be genuinely burned. This is the rule that makes the basic-scheme balance signature safe against output-malleability attacks; see [Consensus & supply → Consensus minimum-fee rule](../concepts/consensus.md#consensus-minimum-fee-rule) for the full security argument and the coinbase / aggregation exemptions.
 
 ## Token / NFT metadata
 
@@ -103,7 +105,7 @@ Navio supports combining multiple independently-authored signed transactions int
 | Per input                        | ~50            |
 | Per output (BLSCT, NAV)          | ~850 (incl. range proof share) |
 | Per output (token, +token_id)    | ~885           |
-| Aggregated tx signature          | 48             |
+| Aggregated tx signature          | 96             |
 
 A typical 2-in / 2-out BLSCT NAV transaction is around 2–3 KB — competitive with Bitcoin P2WSH txs but with full amount privacy.
 
@@ -113,5 +115,7 @@ A typical 2-in / 2-out BLSCT NAV transaction is around 2–3 KB — competitive 
 -   `src/blsct/wallet/verification.cpp` — the verification pipeline.
 -   `src/blsct/tokens/*` — token-specific fields.
 -   [`navio-blsct` `CTx` class](../blsct-lib/transactions.md#ctx) — TypeScript bindings.
+
+`Elements<T>` vectors (the G1 / scalar collections used by range proofs and other structures) deserialize with a bounded-reserve strategy (`Elements<T>::Unserialize` in `src/blsct/arith/elements.h`): they reserve at most 1024 elements and grow incrementally rather than pre-sizing to the untrusted length prefix, so a truncated or hostile stream throws before allocating. This bounds the memory-exhaustion surface when parsing untrusted P2P data.
 
 For decoding a tx via RPC, use [`decodeblsctrawtransaction`](../rpc/blsct.md#decodeblsctrawtransaction) — returns the JSON view of every field.

@@ -36,14 +36,36 @@ Full math, verifier equations, and implementation walk-through: [BLSCT → PoPS]
 | Parameter             | Value                                                                        |
 | --------------------- | ---------------------------------------------------------------------------- |
 | BLSCT enabled         | Yes                                                                           |
-| Bootstrap PoW phase   | Heights `1..100` (`nLastPOWHeight = 100`)                                     |
+| Bootstrap PoW phase   | Heights `1..110` (`nLastPOWHeight = 110`); PoS (PoPS) begins at height `111`    |
 | Height-1 reward       | **81,743,678 NAV** (`nBLSCTFirstBlockReward`)                                 |
-| PoW reward after height 1 | **0 NAV** through the bootstrap PoW window (`fOnlyFirstPoWBlockHasReward = true`) |
+| PoW reward after height 1 | **0 NAV** across the bootstrap PoW window (heights `2..110`) (`fOnlyFirstPoWBlockHasReward = true`) |
 | Steady-state PoPS reward | **8 NAV** (`nBLSCTBlockReward`)                                            |
 | Target block time     | **120 s**                                                                     |
 | Retarget window       | **3600 s**                                                                    |
 | Minimum stake         | 10,000 NAV                                                                   |
 | `posLimit` (difficulty ceiling) | `0x0000ffffffffffff…`                                              |
+
+### Mainnet genesis & launch (v0.1.0)
+
+Navio Core **0.1.0** is the first stable release and the one that activates mainnet ([navio-core PR #291](https://github.com/nav-io/navio-core/pull/291)).
+
+| Genesis field        | Value                                                                |
+| -------------------- | ------------------------------------------------------------------- |
+| Block hash           | `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13`  |
+| Merkle root          | `96f8dfcc3c433012bc9d4b42e85fe543936609f87fce2cc9d5484383ee2f9aaf`  |
+| Timestamp            | `1782910800` — 2026-07-01 13:00 UTC                                 |
+| `nMinimumChainWork`  | `0` (fresh chain)                                                   |
+| `defaultAssumeValid` | `0` (fresh chain)                                                   |
+
+The genesis coinbase is a **plain unspendable `OP_RETURN`**, *not* a BLSCT output. The genesis block is never connected — `ConnectBlock` special-cases the genesis hash — so it never enters the UTXO/staked-commitment view. Its `scriptSig` hides the message *"Privacy is the power to selectively reveal oneself to the world."*
+
+!!! info "PoW → PoS bootstrap"
+    - **Block 1** mints the entire initial supply (**81,743,678 NAV**) in its coinbase.
+    - **Heights 2..110** are zero-reward PoW blocks, but each still produces a full BLSCT coinbase output complete with range proofs.
+    - `COINBASE_MATURITY = 100`, so the block-1 coinbase matures at tip height **101**.
+    - **PoS begins at height 111.** The headroom exists because the PoPS ring needs **≥ 2 commitments**, and each wallet's stakelocks collapse to a single commitment — so the founder must fund and lock stakes from **at least two wallets** before height 111.
+
+**Mainnet seeds:** DNS seed `seed.nav.io`; hardcoded fixed bootstrap seed `blocks.nav.io` (`168.119.249.67:48470`).
 
 ### Testnet
 

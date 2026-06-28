@@ -43,6 +43,21 @@ Standalone `navio-blsct` exposes different Signet / Regtest HRPs (`snv`, `rnav`)
 -   1 NAV = **10 ⁸** satoshis = `100_000_000` sats.
 -   Amounts in RPC are typically NAV (floating), in SDK `bigint` satoshis.
 
+## Mainnet genesis (v0.1.0)
+
+| Parameter            | Value |
+| -------------------- | ----- |
+| Client version       | `0.1.0` (release) |
+| Genesis hash         | `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13` |
+| Merkle root          | `96f8dfcc3c433012bc9d4b42e85fe543936609f87fce2cc9d5484383ee2f9aaf` |
+| Genesis time         | `1782910800` (2026-07-01 13:00 UTC) |
+| `nBits`              | `0x207fffff` |
+| `nVersion`           | `0x40000000` |
+| `nMinimumChainWork`  | `0` |
+| `defaultAssumeValid` | `0` |
+
+The genesis coinbase is a plain unspendable `OP_RETURN` (the genesis block is never connected).
+
 ## Consensus parameters
 
 Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
@@ -52,10 +67,10 @@ Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
 | Parameter                         | Value |
 | --------------------------------- | ----- |
 | Consensus                         | BLSCT + PoPS |
-| `nLastPOWHeight`                  | 100 |
+| `nLastPOWHeight`                  | 110 |
 | `fOnlyFirstPoWBlockHasReward`     | `true` |
 | `nBLSCTFirstBlockReward`          | 81,743,678 NAV |
-| PoW subsidy at heights `2..100`   | 0 NAV |
+| PoW subsidy at heights `2..110`   | 0 NAV |
 | `nBLSCTBlockReward`               | 8 NAV |
 | `nPosTargetSpacing`               | 120 s |
 | `nPosTargetTimespan`              | 3600 s |
@@ -144,7 +159,7 @@ Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
 | Network | Seed hostnames                                    |
 | ------- | ------------------------------------------------- |
 | testnet | `testnet.nav.io`, `testnet2.nav.io`                |
-| mainnet | (defined in `chainparams.cpp`)                     |
+| mainnet | DNS seed `seed.nav.io`; fixed bootstrap seed `blocks.nav.io` (`168.119.249.67:48470`) |
 
 ## Default datadir paths
 
