@@ -191,6 +191,13 @@ Send an amount to a given blsct address.
 | 2 | `amount` | `AMOUNT` | yes | The amount in to send. eg 0.1 |
 | 3 | `memo` | `STR` | no (default `""`) | A memo used to store in the transaction.\n The recipient will see its value. |
 | 4 | `verbose` | `BOOL` | no (default `false`) | If true, return extra information about the transaction. |
+| 5 | `subtractfeefromamount` | `BOOL` | no (default `false`) | If true, the fee is deducted from `amount` — the recipient receives less than requested and the wallet spends exactly `amount`. |
+| 6 | `comment_to` | `STR` | no (default `""`) | Wallet-local comment naming the person/organization the payment is to. Stored only on the sender's wallet (surfaced by `listtransactions`), never sent on-chain. |
+
+The recipient-visible `memo` is also mirrored into the sender's wallet-local `comment` field. `sendtoaddress` routes to this command for BLSCT wallets and forwards its `comment` argument.
+
+!!! note "Added in 0.1.3"
+    `subtractfeefromamount` and `comment_to` were added in navio-core **0.1.3** ([PR #302](https://github.com/nav-io/navio-core/pull/302)). Before 0.1.3 `subtractfeefromamount` was silently a no-op and `comment`/`comment_to` were dropped for BLSCT wallets.
 
 ---
 
@@ -386,6 +393,9 @@ navio-cli createblsctrawtransaction "[{\"txid\":\"myid\",\"value\":1000000,\"gam
 ```bash
 navio-cli createblsctrawtransaction "[{\"txid\":\"myid\"}]" "[{\"address\":\"address\",\"amount\":1000000}]"
 ```
+
+!!! note "Atomic-swap HTLC outputs (0.1.3+)"
+    An `atomic_swap` output takes `address_a` / `address_b`, `hashlock`, `locktime`, `timelock_opcode` (`"cltv"` default or `"csv"`), and an optional `blinding_key`. Since navio-core **0.1.3** ([PR #298](https://github.com/nav-io/navio-core/pull/298)), building such an output **auto-registers the HTLC script as watch-only** using `address_a`'s recovery nonce — so the wallet building the swap tracks and can recover the output (including its own timelock/refund branch) via `listblsctunspent` **without a separate [`importblsctscript`](#importblsctscript) call**. Pass a per-output `"watch_only": false` to opt out (default `true`), e.g. when building a swap on behalf of another wallet.
 
 ---
 

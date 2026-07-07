@@ -1,6 +1,6 @@
 # Sending transactions
 
-The SDK exposes three high-level send methods, plus raw broadcast and aggregation for advanced flows.
+The SDK exposes four high-level send methods (`sendTransaction`, `sendToMany`, `sendToken`, `sendNft`), plus raw broadcast and aggregation for advanced flows.
 
 ## Send NAV
 
@@ -53,6 +53,41 @@ await client.sendTransaction({
     subtractFeeFromAmount: true,
 });
 ```
+
+## Send to many {#send-to-many}
+
+Pay several recipients in a **single** confidential NAV transaction. All recipients share one set of (auto- or manually-selected) NAV inputs and a single optional change output — cheaper and more private than N separate sends.
+
+```ts
+const result = await client.sendToMany({
+    recipients: [
+        { address: 'tnv1...', amount: 100_000_000n, memo: 'invoice 1' },
+        { address: 'tnv1...', amount:  50_000_000n },
+        { address: 'tnv1...', amount:  25_000_000n, subtractFeeFromAmount: true },
+    ],
+});
+
+console.log('txid:', result.txId);
+console.log('outs:', result.outputCount); // recipients + change
+```
+
+`SendToManyOptions`:
+
+```ts
+interface SendRecipient {
+    address: string;                  // bech32m recipient
+    amount: bigint;                   // satoshis, must be > 0
+    memo?: string;                    // per-output memo
+    subtractFeeFromAmount?: boolean;  // this recipient pays a share of the fee
+}
+
+interface SendToManyOptions {
+    recipients: SendRecipient[];      // one or more, non-empty
+    selectedUtxos?: string[];         // optional manual NAV UTXO selection (outputHashes)
+}
+```
+
+When `subtractFeeFromAmount` is set on more than one recipient, the fee is split evenly between them (rounding remainder goes to the first such recipient). NAV only — for tokens/NFTs use `sendToken` / `sendNft`. Returns the same `SendTransactionResult` as `sendTransaction`.
 
 ## Send token
 

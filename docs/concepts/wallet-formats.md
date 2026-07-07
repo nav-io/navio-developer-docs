@@ -13,6 +13,17 @@ Navio wallets inherit BIP-32 hierarchical deterministic (HD) derivation from Bit
 
 All seed formats ultimately produce the same BLS master scalar; the difference is the backup material the user writes down.
 
+### Mnemonic passphrase (the "25th word")
+
+navio-core can optionally extend a BIP-39 mnemonic with a passphrase when deriving the wallet keys — `createwallet`'s `mnemonic_passphrase` argument, or `navio-wallet create -mnemonicpassphrase`. The seed is stretched with the standard BIP-39 KDF (PBKDF2-HMAC-SHA512, 2048 iterations, salt `"mnemonic" + passphrase`).
+
+-   The passphrase is **never stored** — `dumpmnemonic` returns only the mnemonic. The same passphrase must be re-supplied to restore the wallet, so it acts as a second factor: the mnemonic alone is not enough.
+-   An **empty** passphrase reproduces the legacy derive-from-entropy path, so mnemonics created without one restore unchanged.
+-   Different passphrases over the same mnemonic yield entirely different wallets (plausible-deniability decoys).
+
+!!! warning "Unreleased — post-0.1.3"
+    Mnemonic-passphrase support is on the `feat/mnemonic-bip39-passphrase` branch and is not yet in a tagged navio-core release. The `navio-sdk` KeyManager does not expose a passphrase parameter yet. See the [createwallet RPC notes](../rpc/categories/wallet.md#mnemonic-passphrase).
+
 ## HD chain structure
 
 Navio's HD chain has three logical roles, represented as three **sub-address pools** distinguished by account index:

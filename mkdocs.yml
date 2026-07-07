@@ -198,6 +198,7 @@ nav:
           - Synchronization: sdk/sync.md
           - Balances & UTXOs: sdk/balances.md
           - Sending transactions: sdk/sending.md
+          - Token trading (RFQ swaps): sdk/trading.md
           - Tokens & NFTs: sdk/tokens.md
           - Database & storage: sdk/database.md
           - Encryption: sdk/encryption.md

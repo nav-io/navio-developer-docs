@@ -68,6 +68,9 @@ OP_ENDIF
 
 **Crucial:** set the output's BLSCT spending key to zero so script logic alone governs spending. Use [`deriveblsctspendingkey`](../rpc/blsct.md#deriveblsctspendingkey) helpers.
 
+!!! tip "Refund tracking is automatic in 0.1.3+"
+    Alice sells NAV and owns the refund (ELSE / timelock) branch, which is *not* the branch the output is blinded to — historically she had to run [`importblsctscript`](../rpc/blsct.md#importblsctscript) to see and reclaim her own HTLC output. Since navio-core **0.1.3**, `createblsctrawtransaction` auto-registers the `atomic_swap` output as watch-only, so it shows up in [`listblsctunspent`](../rpc/blsct.md#listblsctunspent) with no extra step. Pass `"watch_only": false` on the output to opt out (e.g. when building the swap on another wallet's behalf).
+
 ### Step 3 — Alice claims Bob's BTC
 
 Alice builds and broadcasts a Bitcoin tx spending Bob's HTLC on the IF branch:
