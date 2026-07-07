@@ -17,8 +17,9 @@ npm install navio-sdk
 -   Blockchain synchronisation via either Electrum or direct P2P.
 -   Automatic BLSCT output detection with view-tag optimisation.
 -   Amount / memo recovery.
--   Confidential transaction construction — NAV, tokens, NFTs.
+-   Confidential transaction construction — NAV, tokens, NFTs, multi-recipient (`sendToMany`).
 -   Transaction aggregation for intra-chain swaps / CoinJoin.
+-   Peer-to-peer token trading over encrypted messaging (RFQ atomic swaps).
 -   Cross-platform SQLite storage (sql.js in browsers, better-sqlite3 in Node).
 -   Reorg detection and recovery.
 
@@ -31,7 +32,8 @@ npm install navio-sdk
 | [Wallet management](wallet.md)             | KeyManager, sub-addresses, mnemonic, audit key                                          |
 | [Synchronization](sync.md)                 | Electrum vs P2P, background sync, progress callbacks, reorgs                             |
 | [Balances & UTXOs](balances.md)            | NAV and asset balances, unspent output queries                                          |
-| [Sending transactions](sending.md)         | NAV sends, token sends, NFT sends, aggregation                                          |
+| [Sending transactions](sending.md)         | NAV sends, multi-recipient, token sends, NFT sends, aggregation                         |
+| [Token trading](trading.md)                | RFQ atomic swaps — taker/maker peer-to-peer trading                                     |
 | [Tokens & NFTs](tokens.md)                 | Collection creation, minting, NFT metadata                                              |
 | [Database & storage](database.md)          | Schema, adapters, migration                                                             |
 | [Encryption](encryption.md)                | Wallet password protection, encrypted backups                                           |

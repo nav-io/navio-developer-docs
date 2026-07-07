@@ -47,7 +47,8 @@ Standalone `navio-blsct` exposes different Signet / Regtest HRPs (`snv`, `rnav`)
 
 | Parameter            | Value |
 | -------------------- | ----- |
-| Client version       | `0.1.0` (release) |
+| Genesis client       | `0.1.0` (first release; activated mainnet) |
+| Latest release       | `0.1.3` |
 | Genesis hash         | `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13` |
 | Merkle root          | `96f8dfcc3c433012bc9d4b42e85fe543936609f87fce2cc9d5484383ee2f9aaf` |
 | Genesis time         | `1782910800` (2026-07-01 13:00 UTC) |
@@ -79,6 +80,10 @@ Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
 | Max block size                    | 4 MB |
 | BLSCT                             | Mandatory for transactions on this chain |
 
+Mainnet block reward is **8 NAV** — `2 * COIN * (nPosTargetSpacing / 30)` with a 120 s target spacing. (Only the 60 s networks — signet/regtest — yield 4 NAV.)
+
+Since navio-core **0.1.3** ([PR #303](https://github.com/nav-io/navio-core/pull/303)) mainnet ships a populated `chainTxData` (`nTime = 1783350480`, `nTxCount = 4018`, `dTxRate ≈ 0.0083`, sampled at height 3845) so the node can estimate sync progress.
+
 ### Testnet
 
 | Parameter                         | Value |
@@ -86,8 +91,8 @@ Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
 | Consensus                         | BLSCT + PoPS |
 | `nLastPOWHeight`                  | 1000 |
 | `nBLSCTFirstBlockReward`          | 75,000,000 NAV |
-| `nBLSCTBlockReward`               | 4 NAV |
-| `nPosTargetSpacing`               | 60 s |
+| `nBLSCTBlockReward`               | 8 NAV (`2 * COIN * (nPosTargetSpacing / 30)`) |
+| `nPosTargetSpacing`               | 120 s |
 | `nPosTargetTimespan`              | 1800 s |
 | `nPePoSMinStakeAmount`            | 10,000 NAV |
 | `fPoPSHardened`                   | `false` |

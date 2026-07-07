@@ -12,9 +12,19 @@ Until the pipeline runs, consult:
 Notable items to watch for:
 
 -   Consensus-breaking upgrades (announced with target activation heights).
--   **0.1.0** — first stable release; activates **mainnet** (genesis 2026-07-01 13:00 UTC, genesis hash `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13`).
 -   BLSCT protocol version bumps.
 -   RPC additions / deprecations.
+
+Recent releases:
+
+-   **0.1.3** (latest) — `sendtoblsctaddress` now honors `subtractfeefromamount` and stores `comment`/`comment_to` on the sender's wallet ([#302](https://github.com/nav-io/navio-core/pull/302)); atomic-swap HTLC outputs auto-register as watch-only when built via `createblsctrawtransaction` ([#298](https://github.com/nav-io/navio-core/pull/298)); mainnet `chainTxData` populated for sync-progress estimation ([#303](https://github.com/nav-io/navio-core/pull/303)); staked-commitment gathering fixed before unstake selection.
+-   **0.1.2** — robust BLSCT coin selection, consolidation, and spent-output tracking ([#296](https://github.com/nav-io/navio-core/pull/296)).
+-   **0.1.1** — client-version bump; PoW→PoS mainnet bootstrap fix.
+-   **0.1.0** — first stable release; activates **mainnet** (genesis 2026-07-01 13:00 UTC, genesis hash `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13`).
+
+Unreleased (feature branches):
+
+-   BIP-39 **mnemonic passphrase** — `createwallet mnemonic_passphrase` / `navio-wallet -mnemonicpassphrase` (`feat/mnemonic-bip39-passphrase`).
 
 ## navio-sdk
 
@@ -25,6 +35,17 @@ Notable items:
 -   Breaking API changes.
 -   Sync protocol compatibility updates.
 -   New transaction primitives (tokens, NFTs, aggregation).
+
+Recent releases (npm `navio-sdk`, bundling `navio-blsct`):
+
+-   **0.1.16** — fee-calculation refactor; eliminates a spurious burn-address output on NAV sends. Bundles `navio-blsct ^1.1.15`.
+-   **0.1.14** — `sendToMany` (multi-recipient single-tx sends) and transaction aggregation helpers.
+-   **0.1.13** — token & NFT collection creation, minting, and sending.
+-   **0.1.12** — watch-only wallet restore from BLSCT audit keys + audit-key export.
+
+Unreleased (feature branches):
+
+-   **RFQ atomic-swap trading** — taker/maker peer-to-peer token trading over encrypted p2p messaging (`rfq-swap-trading`). See [Token trading](../sdk/trading.md).
 
 ## libblsct-bindings
 
@@ -65,7 +86,7 @@ Key dates / heights:
 Key parameters:
 
 -   Initial supply: 81,743,678 NAV migrated.
--   Block reward: 4 NAV (`2 * COIN * (nPosTargetSpacing / 30)`). Target block time 60 s. Max block 4 MB.
+-   Block reward: 8 NAV (`2 * COIN * (nPosTargetSpacing / 30)`, with a 120 s target spacing). Max block 4 MB.
 -   BLSCT mandatory. PoPS consensus (both mainnet and testnet).
 -   Community fund removed at genesis; unspent legacy balance burned.
 -   Swap-window staking rewards burned.

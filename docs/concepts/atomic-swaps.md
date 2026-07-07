@@ -38,6 +38,9 @@ OP_ENDIF
 
 The *spending key* of the BLSCT output must be set to zero so that spending is governed exclusively by the script — otherwise the BLSCT stealth spending key would override script logic.
 
+!!! tip "Tracking your own refund output (0.1.3+)"
+    A BLSCT HTLC output is blinded to `address_a` (the hashlock/redeem branch), so only that party's view key can cryptographically recognize it. The party **selling NAV** owns `address_b` (the timelock/refund branch) and, before 0.1.3, was blind to its own refund output — it had to run [`importblsctscript`](../rpc/blsct.md#importblsctscript) manually to track and reclaim it. Since navio-core **0.1.3** ([PR #298](https://github.com/nav-io/navio-core/pull/298)), [`createblsctrawtransaction`](../rpc/blsct.md#createblsctrawtransaction) **auto-registers the HTLC script as watch-only** (using `address_a`'s recovery nonce, which decrypts the amount for either participant) when it builds an `atomic_swap` output — no separate import needed. Pass `"watch_only": false` on the output to opt out.
+
 ### Protocol
 
 Assume Alice has NAV and wants BTC. Bob has BTC and wants NAV.
