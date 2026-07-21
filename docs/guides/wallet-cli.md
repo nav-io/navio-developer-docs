@@ -32,6 +32,12 @@ navio-cli createwallet "main"
 !!! danger "The mnemonic is shown only this once"
     The 24 words in the `createwallet` response are the master backup of the wallet. Write them down **now**, offline (paper or metal). They are not shown again on wallet load — though you can re-dump them later with `dumpmnemonic` while the wallet is loaded and unlocked.
 
+To create the wallet with a [BIP-39 mnemonic passphrase](../rpc/categories/wallet.md#mnemonic-passphrase) (the "25th word", extending the seed derivation — v0.1.5+):
+
+```bash
+navio-cli -named createwallet wallet_name="main" mnemonic_passphrase="my secret passphrase"
+```
+
 To encrypt the wallet at creation, pass a passphrase:
 
 ```bash
@@ -39,6 +45,9 @@ navio-cli -named createwallet wallet_name="main" passphrase="correct horse batte
 ```
 
 An existing unencrypted wallet can be encrypted later with `encryptwallet`.
+
+!!! note "Two different passphrases"
+    `passphrase` encrypts the wallet file on this machine — it protects the wallet database and is not needed to restore from the mnemonic. `mnemonic_passphrase` changes the key derivation itself (what some wallets call the BIP-39 "extension words" or "25th word") — it **is** required, together with the 24 words, to restore the wallet. They are independent; you can use either or both.
 
 ## 2. Back up / dump the mnemonic
 
