@@ -35,8 +35,8 @@
 
 ### BIP-39 mnemonic passphrase {#mnemonic-passphrase}
 
-!!! warning "Unreleased — post-0.1.3"
-    `mnemonic_passphrase` is on the `feat/mnemonic-bip39-passphrase` branch and is **not yet in a tagged release**. `navio-wallet create` gains a matching `-mnemonicpassphrase` option. Verify availability against your node's `navio-cli help createwallet` before relying on it.
+!!! info "Requires v0.1.5+"
+    `mnemonic_passphrase` shipped in navio-core **v0.1.5**. `navio-wallet create` has a matching `-mnemonicpassphrase` option. On older nodes, verify availability with `navio-cli help createwallet`.
 
 An optional passphrase extends a BIP-39 mnemonic when deriving the wallet keys (BIP-39 seed = PBKDF2-HMAC-SHA512, 2048 iterations, salt `"mnemonic" + passphrase`):
 

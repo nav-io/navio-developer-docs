@@ -4,6 +4,7 @@ End-to-end tutorials. Each guide is task-shaped — you start empty, follow the 
 
 | Guide                                                      | You build                                                              |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [Wallet basics with navio-cli](wallet-cli.md)              | Create, back up, restore, and receive — pure `navio-cli`               |
 | [Build a wallet with navio-sdk](sdk-wallet.md)             | Node.js wallet CLI: create, sync, send                                 |
 | [Mint an NFT collection](mint-nft.md)                       | Token collection + NFTs + transfer, from scratch                       |
 | [Build a watch-only audit wallet](audit-wallet.md)         | Exchange-style deposit monitor driven by audit key                     |

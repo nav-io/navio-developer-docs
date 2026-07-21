@@ -227,6 +227,7 @@ nav:
           - Customising the frontend: explorer/theming.md
     - Guides:
           - guides/index.md
+          - Wallet basics with navio-cli: guides/wallet-cli.md
           - Build a wallet with navio-sdk: guides/sdk-wallet.md
           - Mint an NFT collection: guides/mint-nft.md
           - Watch-only audit wallet: guides/audit-wallet.md
