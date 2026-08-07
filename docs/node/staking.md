@@ -101,7 +101,7 @@ On mainnet, testnet, and `blsctregtest`, the coinstake transaction does **not** 
 
 ## Cold staking
 
-**Coming soon.** The design for Navio cold staking (spend key offline, staking authority delegated to a hot daemon) is not yet published. Track the [navio-core repo](https://github.com/nav-io/navio-core) for the reference implementation and this site for an operator guide once the protocol is finalised.
+Since **v0.1.7**, Navio supports delegated cold staking with no consensus changes: the spend key stays offline while a third-party operator produces blocks with the delegated stake, discovered and decrypted from an encrypted `DATA`-predicate payload on the staked output. Owner and operator workflows, trust model, fees and monitoring: [Cold staking](cold-staking.md).
 
 ## Troubleshooting
 
@@ -115,4 +115,4 @@ On mainnet, testnet, and `blsctregtest`, the coinstake transaction does **not** 
 
 ## Alternatives: dedicated staking pools
 
-Third-party staking services may run validators on behalf of depositors. Vet any custodian; delegating funds carries custodial risk until the cold-staking design ships.
+Third-party staking services may run validators on behalf of depositors. Prefer [cold staking](cold-staking.md) over custodial services: it delegates only block production — the operator can never spend or unstake the principal — while a custodian holds your funds outright.

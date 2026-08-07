@@ -158,6 +158,7 @@ nav:
           - navio.conf reference: node/configuration.md
           - Running mainnet / testnet: node/networks.md
           - Staking: node/staking.md
+          - Cold staking: node/cold-staking.md
           - ElectrumX server: node/electrumx.md
           - Pruning & reindex: node/pruning.md
           - Backup & restore: node/backup.md
