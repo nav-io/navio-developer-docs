@@ -1,8 +1,13 @@
-# Cold staking (delegated)
+# Cold staking
 
-Navio supports **delegated cold staking with no consensus changes**: a wallet owner lets a third-party "operator" produce blocks with their staked coins while the coins remain spendable only by the owner's spend key — which never has to touch the staking machine.
+Cold staking splits staking authority from spending authority: the **staking (delegation) key stays hot** on the machine that produces blocks, while the **spend key stays cold** — in a wallet that can remain offline. A compromised staking box loses you nothing but block production; the principal is untouchable without the spend key.
 
-Available since **v0.1.7**. Protocol background: [BLSCT → Proof-of-Private-Stake](../blsct/pops.md); local staking: [Staking](staking.md).
+This is the most secure way to stake, and it works in two deployments — both with **no consensus changes**:
+
+- **Self-operated (recommended):** run `navio-staker` on your own server with a delegation key you generated yourself, and delegate your stake to it from your wallet. Your spend key never touches the server.
+- **Delegated to an operator:** point the same delegation at a third-party operator's published key. The operator produces blocks with your coins but can never spend or unstake them.
+
+Available since **v0.1.7**. Protocol background: [BLSCT → Proof-of-Private-Stake](../blsct/pops.md); hot-wallet staking: [Staking](staking.md).
 
 ## Why it works
 
@@ -25,6 +30,25 @@ Caveats:
 - **No view keys are shared.** The operator learns only the `(value, gamma)` openings of the outputs explicitly delegated to it.
 - **Delegated outputs are publicly distinguishable** (they carry a predicate), though the amount and the operator's identity stay hidden from third parties.
 - **Consolidation is delegation-aware.** Stake operations only fold commitments sharing the same delegation identity (delegate key + reward address). A `stakelock` never touches a delegated stake and vice versa, so a delegation is never silently revoked or extended.
+
+## Self-operated cold staking
+
+Run your own staker with the security profile of a cold wallet:
+
+```bash
+# on the staking server: generate your own delegation key pair
+navio-staker -gendelegationkey
+
+# in your wallet (Navio Core or Navio Electrum), delegate to your own key:
+navio-cli delegatestake 10000 <your_delegation_pubkey>
+
+# on the staking server: stake the delegation, no wallet needed
+navio-staker -delegated -delegationkeyfile=/etc/navio/delegation.key
+```
+
+The server holds only the delegation key. If it is compromised, the attacker can produce blocks with your stake (and redirect *future* rewards) until you notice and `redelegatestake` or revoke — the principal and past rewards are safe behind the offline spend key. Compare this with [hot-wallet staking](staking.md), where the staking machine holds a wallet that must be able to open its outputs.
+
+Navio Electrum supports this flow directly: `Wallet > Staking > Stake…` with your delegation key in the *Operator delegation key* field.
 
 ## Owner workflow
 

@@ -101,7 +101,7 @@ On mainnet, testnet, and `blsctregtest`, the coinstake transaction does **not** 
 
 ## Cold staking
 
-Since **v0.1.7**, Navio supports delegated cold staking with no consensus changes: the spend key stays offline while a third-party operator produces blocks with the delegated stake, discovered and decrypted from an encrypted `DATA`-predicate payload on the staked output. Owner and operator workflows, trust model, fees and monitoring: [Cold staking](cold-staking.md).
+Since **v0.1.7**, Navio supports cold staking with no consensus changes: the staking (delegation) key stays hot on the block-producing machine while the spend key stays cold. Delegate to a staker you run yourself — the most secure way to run a validator — or to a third-party operator; either way the delegation is discovered and decrypted from an encrypted `DATA`-predicate payload on the staked output, and only the spend key can move the principal. Owner and operator workflows, trust model, fees and monitoring: [Cold staking](cold-staking.md).
 
 ## Troubleshooting
 

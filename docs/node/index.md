@@ -8,7 +8,7 @@ Everything you need to run and operate `naviod` in production.
 | [navio.conf reference](configuration.md)            | Every config flag, grouped by category. RPC, network, wallet, BLSCT, logging.                                        |
 | [Running mainnet / testnet](networks.md)            | Switching networks, datadir layout, chain-specific behaviour.                                                        |
 | [Staking](staking.md)                               | `navio-staker`, `stakelock`/`stakeunlock`, minimum stake, expected rewards, private stake under PoPS.                |
-| [Cold staking](cold-staking.md)                     | Delegated staking: spend key offline, third-party operator produces blocks. `delegatestake`, operator mode, fees.    |
+| [Cold staking](cold-staking.md)                     | The most secure way to stake: staking key hot, spend key cold. Self-operated or delegated to an operator. `delegatestake`, operator mode, fees. |
 | [ElectrumX server](electrumx.md)                    | Running an Electrum-compatible server for BLSCT-aware Electrum clients.                                              |
 | [Pruning & reindex](pruning.md)                     | Block pruning, txindex, `-reindex`, `-reindex-chainstate`.                                                          |
 | [Backup & restore](backup.md)                       | Wallet file backup, seed/mnemonic backup, audit-key export, encrypted snapshots.                                     |
