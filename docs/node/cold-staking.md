@@ -7,7 +7,7 @@ This is the most secure way to stake, and it works in two deployments — both w
 - **Self-operated (recommended):** run `navio-staker` on your own server with a delegation key you generated yourself, and delegate your stake to it from your wallet. Your spend key never touches the server.
 - **Delegated to an operator:** point the same delegation at a third-party operator's published key. The operator produces blocks with your coins but can never spend or unstake them.
 
-Available since **v0.1.7**. Protocol background: [BLSCT → Proof-of-Private-Stake](../blsct/pops.md); hot-wallet staking: [Staking](staking.md). For the strongest setup, keep even the delegating wallet's spend key offline with [air-gapped signing](../guides/airgap-signing.md) in Navio Electrum.
+Available since **v0.1.7**. Protocol background: [BLSCT → Proof-of-Private-Stake](../blsct/pops.md); hot-wallet staking: [Staking](staking.md). For the strongest setup, keep even the delegating wallet's spend key offline with [air-gapped signing](../guides/airgap-signing.md) in Navio Electrum - the full recipe is in [Best-practice secure setup](../guides/secure-setup.md).
 
 ## Why it works
 

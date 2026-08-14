@@ -2,7 +2,7 @@
 
 Goal: keep the spending key on a device that **never touches the internet**, while a watch-only wallet on your everyday phone or computer tracks balances and prepares transactions. The two devices talk exclusively through QR codes shown on one screen and scanned by the other camera - no cable, no Bluetooth, no radio.
 
-Available in **Navio Electrum v4.9.3+** on Android and desktop. An ordinary spare phone or laptop becomes a hardware-wallet-grade signer.
+Available in **Navio Electrum v4.9.3+** on Android and desktop. An ordinary spare phone or laptop becomes a hardware-wallet-grade signer. For the complete end-to-end setup including a cold staking node, follow [Best-practice secure setup](secure-setup.md).
 
 ## How it fits together
 
