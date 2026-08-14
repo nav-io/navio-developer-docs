@@ -10,8 +10,26 @@ Navio wallets inherit BIP-32 hierarchical deterministic (HD) derivation from Bit
 | BIP-39 mnemonic (12 words)   | 128-bit entropy | Backup, human-transcribable              |
 | BIP-39 mnemonic (24 words)   | 256-bit entropy | Default for new wallets in SDK              |
 | Audit key                    | 160 hex chars (80 bytes) | Watch-only restore — see below   |
+| Birthday mnemonic (26 words) | 24 BIP-39 words + 2 birthday words | Default for new wallets — see below |
 
 All seed formats ultimately produce the same BLS master scalar; the difference is the backup material the user writes down.
+
+### Birthday mnemonic (26 words)
+
+New wallets get a **Navio birthday mnemonic**: the standard BIP-39 24 words followed by two extra words encoding the wallet's creation time, so a restore knows where to start scanning the chain without asking the user for a date:
+
+-   **word 25** — weeks elapsed since the fixed epoch 2026-01-01 00:00 UTC (11 bits ≈ 39 years of range);
+-   **word 26** — the first 11 bits of `HMAC-SHA256(key = entropy, msg = "navio-birthday" || week as uint16 BE)`. This binds the birthday to *this* seed and detects a typo in either extra word.
+
+Key derivation uses **only the first 24 words**, so the derived wallet is byte-identical to a plain BIP-39 restore:
+
+-   dropping the two extra words restores the same wallet with a full scan;
+-   any BIP-39-compatible wallet can import the 24-word base;
+-   the [mnemonic passphrase](#mnemonic-passphrase-the-25th-word) composes normally with the base words.
+
+Restoring from 26 words starts the scan one safety margin before the encoded week — in Navio Electrum and the SDK this maps to a block height via the network's genesis time; in navio-core it sets the wallet birth time so rescans skip older blocks.
+
+Implemented in Navio Electrum v4.9.5+, navio-sdk v0.1.29+, and navio-core ([PR #340](https://github.com/nav-io/navio-core/pull/340)). Shared test vector: entropy `000102…1f` at `t=1783000000` appends `addict render` and decodes to birthday `1782950400`.
 
 ### Mnemonic passphrase (the "25th word")
 

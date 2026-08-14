@@ -45,7 +45,7 @@ Pick the device that will hold the spending key - an old phone or laptop is fine
 
 1. **Take it offline permanently.** Airplane mode on, Wi-Fi and Bluetooth off. Ideally do a factory reset first, install Navio Electrum from the APK/binary (transferred by USB or SD card), and never connect it again.
 2. Open Navio Electrum, create a **new wallet**. Choose your network (mainnet).
-3. **Write the 24-word seed on paper.** Two copies, two locations. The seed is the wallet; the device is just a signing tool. Optionally add a [BIP39 passphrase](wallet-cli.md) - anyone with the paper seed but not the passphrase gets an empty wallet.
+3. **Write the seed on paper - all 26 words.** The last two words are the [wallet birthday](../concepts/wallet-formats.md#birthday-mnemonic-26-words): they encode the creation date so a future restore skips scanning older blocks. A restore with only the first 24 words still works, just slower. Two copies, two locations. The seed is the wallet; the device is just a signing tool. Optionally add a [BIP39 passphrase](wallet-cli.md) - anyone with the paper seed but not the passphrase gets an empty wallet.
 4. Set a device PIN/password and an Electrum wallet password.
 
 This wallet will show no history and never sync - that is the point. It only ever sees transactions as QR proposals you show to its camera.
