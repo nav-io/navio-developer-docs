@@ -232,6 +232,7 @@ nav:
           - Build a wallet with navio-sdk: guides/sdk-wallet.md
           - Mint an NFT collection: guides/mint-nft.md
           - Watch-only audit wallet: guides/audit-wallet.md
+          - Offline cold signing (air-gapped): guides/airgap-signing.md
           - Run a staking node on a VPS: guides/staking-vps.md
           - Atomic swaps walkthrough: guides/atomic-swaps.md
           - Self-host full stack: guides/self-host-stack.md
