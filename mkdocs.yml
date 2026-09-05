@@ -152,6 +152,7 @@ nav:
           - Networks: concepts/networks.md
           - Wallet formats: concepts/wallet-formats.md
           - Atomic swaps: concepts/atomic-swaps.md
+          - P2P encrypted messaging: concepts/p2p-messaging.md
     - Node Operator:
           - node/index.md
           - Install naviod: node/install.md

@@ -18,6 +18,9 @@ BLS12-381 is a pairing-friendly elliptic curve defined over a 381-bit prime fiel
 
 Navio follows the Ethereum 2.0 / IETF `min_pk` ciphersuite: pubkeys live in $G_1$ (48 bytes on the wire), signatures in $G_2$ (96 bytes on the wire). Set at compile time via `#define BLS_ETH 1` in `src/blsct/signature.h` and `src/blsct/arith/mcl/mcl_init.h`, and activated at init via `mclBn_setETHserialization(1)`.
 
+!!! note "Arithmetic backend"
+    The BLS12-381 arithmetic backend is migrating from herumi/mcl to a vendored **supranational/blst** (the same library eth2 clients use), which reindexes a mainnet chain roughly 2× faster on x86_64, with the verification-heavy operations (MSM, set-membership verify, point deserialization) seeing the largest wins. The `min_pk` serialisation and every on-wire format are unchanged. Subgroup membership on $G_1$ is enforced with a **deterministic per-point** check (`blst_p1_in_g1`) rather than a random-linear-combination, so two nodes always agree on whether a proof-supplied point is valid.
+
 ## Pairing
 
 The pairing is $e : G_1 \times G_2 \to G_T$ with the bilinearity property

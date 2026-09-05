@@ -25,6 +25,12 @@ Recent releases:
 Unreleased (feature branches):
 
 -   BIP-39 **mnemonic passphrase** — `createwallet mnemonic_passphrase` / `navio-wallet -mnemonicpassphrase` (`feat/mnemonic-bip39-passphrase`).
+-   **P2P encrypted messaging** — application-agnostic encrypted broadcast overlay (kind-blind relay + mandatory per-message PoW + 1-layer ECIES), carrying aggregation cover-traffic, RFQ token swaps, and standing orders. Identity/prekey split with opt-in persistent identity and manual/periodic prekey rotation, Dandelion++ stem routing, and the `NODE_P2PMSG` service bit. New RPCs `getp2pmsginfo`, `rotatep2pmsginbox`, `sendp2pping` ([#263](https://github.com/nav-io/navio-core/pull/263)). See [P2P encrypted messaging](../concepts/p2p-messaging.md).
+-   **blst arithmetic backend** — replaces herumi/mcl with vendored supranational/blst for BLS12-381 arithmetic; ~2× full-chain reindex on x86_64, with verification-heavy ops (MSM, set-membership verify, deserialization) the biggest wins ([#387](https://github.com/nav-io/navio-core/pull/387)). Fixed-base MSM precompute for the range-proof generators + parallel `RecoverAmounts` ([#389](https://github.com/nav-io/navio-core/pull/389)).
+-   **Deterministic G1 subgroup check** — the batched subgroup check moves from a random-linear-combination (which accepted an order-3-torsion point ~1/3 of the time, non-deterministically per node) to a deterministic per-point check ([#394](https://github.com/nav-io/navio-core/pull/394)).
+-   **Verifier hardening** — proof-deserialization length bounds and identity-commitment early-out rejects on the range-proof and set-membership verifiers ([#390](https://github.com/nav-io/navio-core/pull/390)).
+-   **ConnectBlock performance** — reuse the staked-commitment set and per-output content hashes across the connect scans, memoise the PoS body hash, and parallelise BLSCT output hashing ([#391](https://github.com/nav-io/navio-core/pull/391), [#392](https://github.com/nav-io/navio-core/pull/392)).
+-   **Wallet / crypto fixes** — no longer abort the node on an exhausted or locked keypool (returns a clean `RPC_WALLET_KEYPOOL_RAN_OUT`) ([#395](https://github.com/nav-io/navio-core/pull/395)); correct `HKDF_Expand`'s final-pass output iterator in EIP-2333 key generation ([#397](https://github.com/nav-io/navio-core/pull/397)).
 
 ## navio-sdk
 
