@@ -31,6 +31,12 @@ FILES = [
 ]
 BLSCT_KEYWORDS = ("blsct", "token", "nft", "stake", "mnemonic", "blsmessage")
 EXPLICIT = {"getblsctseed", "getblsctauditkey", "dumpmnemonic", "importblsctscript"}
+# Names on the p2pmsg/aggregation/RFQ surface (matched as substrings of the
+# lowercase command name) for --p2pmsg mode.
+P2PMSG_KEYWORDS = (
+    "p2pmsg", "p2pping", "candidate", "aggregat", "quote", "rfq", "swapintent",
+    "sendorder", "listorders",
+)
 
 
 def find_matching(text, start, open_ch="{", close_ch="}"):
@@ -225,12 +231,18 @@ def render(e):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("usage: extract-blsct-rpc.py <path-to-navio-core>", file=sys.stderr)
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    if not args:
+        print("usage: extract-blsct-rpc.py [--p2pmsg] <path-to-navio-core>", file=sys.stderr)
         sys.exit(1)
-    root = pathlib.Path(sys.argv[1])
+    # --p2pmsg: extract the p2p-messaging / aggregation / RFQ surface
+    # (src/rpc/p2pmsg.cpp + the p2pmsg wallet RPCs) instead of the BLSCT set.
+    p2pmsg_mode = "--p2pmsg" in flags
+    files = ["src/rpc/p2pmsg.cpp", "src/blsct/wallet/rpc.cpp"] if p2pmsg_mode else FILES
+    root = pathlib.Path(args[0])
     entries = []
-    for rel in FILES:
+    for rel in files:
         path = root / rel
         if not path.exists():
             print(f"# warning: {path} not found", file=sys.stderr)
@@ -250,7 +262,10 @@ def main():
         if e["name"] in seen:
             continue
         lc = e["name"].lower()
-        if not (any(k in lc for k in BLSCT_KEYWORDS) or e["name"] in EXPLICIT):
+        if p2pmsg_mode:
+            if not any(k in lc for k in P2PMSG_KEYWORDS):
+                continue
+        elif not (any(k in lc for k in BLSCT_KEYWORDS) or e["name"] in EXPLICIT):
             continue
         seen.add(e["name"])
         print(render(e))
