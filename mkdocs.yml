@@ -238,6 +238,7 @@ nav:
           - Best-practice secure setup: guides/secure-setup.md
           - Run a staking node on a VPS: guides/staking-vps.md
           - Atomic swaps walkthrough: guides/atomic-swaps.md
+          - Trade tokens with RFQ: guides/rfq-trading.md
           - Self-host full stack: guides/self-host-stack.md
           - Exchange integration: guides/exchange-integration.md
           - Build and broadcast a raw BLSCT tx: guides/raw-blsct-tx.md

@@ -5,7 +5,7 @@ Two concrete walkthroughs:
 1.  **Cross-chain** BTC ↔ NAV via HTLC.
 2.  **Intra-chain** NAV ↔ TokenA via BLS signature aggregation.
 
-Concept doc: [Concepts → Atomic swaps](../concepts/atomic-swaps.md).
+Concept doc: [Concepts → Atomic swaps](../concepts/atomic-swaps.md). For the RFQ marketplace flow (makers post liquidity, takers request quotes, one-transaction settlement) see [Trade tokens with RFQ](rfq-trading.md).
 
 ---
 

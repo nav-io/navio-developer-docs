@@ -9,7 +9,7 @@ This page is **automatically generated** by `scripts/extract-blsct-rpc.py --p2pm
 
 Run `navio-cli help <command>` on your node for the definitive help text — source may have evolved since the last documentation build.
 
-See the [p2p encrypted messaging concept page](../concepts/p2p-messaging.md) for how the bus works (kind-blind relay, per-message PoW, identity/prekey split, Dandelion stem).
+See the [p2p encrypted messaging concept page](../concepts/p2p-messaging.md) for how the bus works (kind-blind relay, per-message PoW, identity/prekey split, Dandelion stem), and [Trade tokens with RFQ](../guides/rfq-trading.md) for the full maker/taker trading sequence in plain terms.
 
 ## Quick index
 
