@@ -35,6 +35,12 @@ HEADER
     python3 "$ROOT/scripts/extract-blsct-rpc.py" "$WORK/core"
 } > "$ROOT/docs/rpc/blsct.md"
 
+echo "==> Extracting p2pmsg RPCs from source"
+{
+    cat "$ROOT/docs/rpc/_p2pmsg_header.md"
+    python3 "$ROOT/scripts/extract-blsct-rpc.py" --p2pmsg "$WORK/core"
+} > "$ROOT/docs/rpc/p2pmsg.md"
+
 echo "==> Wrote $(wc -l < "$ROOT/docs/rpc/blsct.md") lines to docs/rpc/blsct.md"
 
 # Optional: auto-populate category pages by running naviod in regtest + parsing `help`

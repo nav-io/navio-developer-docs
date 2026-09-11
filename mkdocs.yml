@@ -169,6 +169,7 @@ nav:
     - RPC Reference:
           - rpc/index.md
           - BLSCT commands: rpc/blsct.md
+          - P2P messaging: rpc/p2pmsg.md
           - Tokens & NFTs: rpc/tokens-nfts.md
           - Wallet: rpc/categories/wallet.md
           - Blockchain: rpc/categories/blockchain.md
