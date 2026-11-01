@@ -12,6 +12,8 @@ Everything you need to run and operate `naviod` in production.
 | [ElectrumX server](electrumx.md)                    | Running an Electrum-compatible server for BLSCT-aware Electrum clients.                                              |
 | [Pruning & reindex](pruning.md)                     | Block pruning, txindex, `-reindex`, `-reindex-chainstate`.                                                          |
 | [Backup & restore](backup.md)                       | Wallet file backup, seed/mnemonic backup, audit-key export, encrypted snapshots.                                     |
-| [Upgrading](upgrading.md)                           | Between releases, between networks, between consensus versions.                                                      |
-| [Security hardening](security.md)                   | Firewall, Tor, non-root, process isolation via container / bubblewrap / runit, RPC auth.                              |
+| [Upgrading](upgrading.md)                           | Between releases, between networks, between consensus versions; v0.2.x notes; recovering from a version-mismatch fork. |
+| [Security hardening](security.md)                   | Firewall, Tor, BIP324 v2 transport, WebSocket listener, non-root, process isolation via container / bubblewrap / runit, RPC auth. |
 | [Monitoring](monitoring.md)                         | ZMQ publishers, RPC healthchecks, Prometheus via exporters, log rotation.                                            |
+
+Protocol background for operators: [P2P protocol](../concepts/p2p-protocol.md) (service bits, v2 transport, WebSocket listener, light-wallet output keys) and [P2P encrypted messaging](../concepts/p2p-messaging.md).

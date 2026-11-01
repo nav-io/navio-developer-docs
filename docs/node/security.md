@@ -37,7 +37,7 @@ rpcbind=127.0.0.1
 rpcallowip=127.0.0.1
 ```
 
-If remote RPC access is genuinely needed, front naviod with an authenticated reverse proxy (nginx + TLS + client cert, WireGuard, or SSH tunnel). **Do not** expose port 33677 to the public internet.
+If remote RPC access is genuinely needed, front naviod with an authenticated reverse proxy (nginx + TLS + client cert, WireGuard, or SSH tunnel). **Do not** expose the RPC port (`48471` mainnet, `33677` testnet) to the public internet.
 
 ## Firewall
 
@@ -45,10 +45,30 @@ If remote RPC access is genuinely needed, front naviod with an authenticated rev
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow 22/tcp comment 'SSH'
-sudo ufw allow 33670/tcp comment 'Navio P2P'
-# DO NOT open 33677 unless you have a very specific reason
+sudo ufw allow 48470/tcp comment 'Navio P2P (mainnet; testnet: 33670)'
+# DO NOT open the RPC port (48471 / 33677) unless you have a very specific reason
 sudo ufw enable
 ```
+
+## Encrypted P2P transport
+
+P2P connections are plaintext (v1) by default. Enable BIP324 v2 transport so connections to peers that support it are encrypted and authenticated against passive observers:
+
+```ini
+v2transport=1
+```
+
+This advertises `NODE_P2P_V2`; peers without v2 support still connect over v1. It matters most for traffic whose metadata you want to keep from on-path observers, such as p2pmsg archive queries. See [P2P protocol → Transport](../concepts/p2p-protocol.md#transport-v1-and-bip324-v2).
+
+## WebSocket listener
+
+If you run `-p2pwsbind` for browser clients:
+
+-   `naviod` speaks plain `ws://` only. Bind the listener to loopback or a private interface and terminate TLS (`wss://`) in a reverse proxy; set `-p2pwsexternal=wss://<host>/<path>` so peers learn the public URL.
+-   WebSocket peers are ordinary inbound peers (counted in `-maxconnections`, DoS-scored, bannable) but always get **no permissions**: `-whitelist` does not apply to them, because behind a proxy they all share the proxy's address. Do not rely on address-based permissions for that path.
+-   A non-loopback `-p2pwsbind` (including a private LAN address) is advertised network-wide with `NODE_P2P_WS`. The endpoint is never announced over Tor, I2P, CJDNS or proxied outbound connections, so it is not linked to an onion identity; `naviod` warns if `-p2pwsexternal` is combined with `-proxy`.
+
+Details: [P2P protocol → WebSocket listener](../concepts/p2p-protocol.md#websocket-listener).
 
 ## Run as non-root user
 
@@ -88,7 +108,7 @@ listen=1
 externalip=<your-onion-address>
 ```
 
-Run Tor on the same host, configure the hidden service for port 33670, copy the resulting onion address into `externalip=`. See [Bitcoin Core Tor guide](https://github.com/bitcoin/bitcoin/blob/master/doc/tor.md) — the pattern is identical.
+Run Tor on the same host and point the hidden service at the node's onion bind (by default `127.0.0.1:48472` on mainnet, `127.0.0.1:33678` on testnet — the `-bind=...=onion` listener, so inbound Tor peers are recognised as such), then copy the resulting onion address into `externalip=`. See [Bitcoin Core Tor guide](https://github.com/bitcoin/bitcoin/blob/master/doc/tor.md) — the pattern is identical.
 
 ## I2P / CJDNS
 

@@ -17,22 +17,26 @@ Current `navio-core` exposes five chain types: `main`, `test`, `signet`, `regtes
 
 ## Bootstrap nodes
 
-Navio relies on DNS seeds and hardcoded bootstrap nodes. Testnet currently bootstraps from:
+Seeds are defined in [`src/kernel/chainparams.cpp`](https://github.com/nav-io/navio-core/blob/master/src/kernel/chainparams.cpp) (DNS seeds) and [`src/chainparamsseeds.h`](https://github.com/nav-io/navio-core/blob/master/src/chainparamsseeds.h) (fixed seeds).
 
+| Network      | DNS seed      | Fixed seed                                   |
+| ------------ | ------------- | -------------------------------------------- |
+| mainnet      | `seed.nav.io` | `168.119.249.67:48470` (`blocks.nav.io`)     |
+| testnet      | none          | none                                         |
+| signet       | none (custom signets: `-signetseednode`) | none              |
+| regtest / blsctregtest | none | none                                     |
+
+Testnet and the default signet have **no built-in seeds**: earlier builds still carried Bitcoin's testnet3 and signet seed lists, which only led to Bitcoin peers, and those were removed. Connect testnet nodes explicitly, for example:
+
+```ini
+[test]
+addnode=testnet.nav.io
+addnode=testnet2.nav.io
 ```
-testnet.nav.io
-testnet2.nav.io
-```
 
-Mainnet bootstrap is defined in [navio-core](https://github.com/nav-io/navio-core/blob/master/src/chainparams.cpp). The current mainnet seeds are:
+Operators can always add peers with `addnode=` / `seednode=` / `connect=` in `navio.conf` or the equivalent command-line flags.
 
-```
-seed.nav.io
-```
-
-In addition, a hardcoded fixed bootstrap node `blocks.nav.io` (`168.119.249.67:48470`) is baked into `src/chainparamsseeds.h` as the launch bootstrap seed; this list will be regenerated and expanded as more stable nodes come online. Always consult the current release.
-
-Operators can override with `addnode=` lines in `navio.conf` or with `-addnode=<host>` on the command line.
+The Bitcoin-era checkpoint data and the `-checkpoints` option were also removed; setting `-checkpoints` now only logs a warning. Navio's **finality checkpoints** (`Consensus::Params::finalityCheckpoints`, empty on mainnet and testnet today) are unaffected and cannot be disabled.
 
 ## Address formats
 
@@ -101,6 +105,8 @@ Navio uses the inherited Bitcoin P2P wire protocol with distinct message-start b
 -   Regtest / blsctregtest: `fd bf 9f fb`
 
 The magic determines which messages a peer will accept. Explorer peer crawlers and custom P2P tooling must set the correct magic — see `P2P_MAINNET_MAGIC_HEX` / `P2P_TESTNET_MAGIC_HEX` in the [navio-blocks env vars](../explorer/self-host.md#environment-variables).
+
+Navio's protocol extensions (service bits, `getdata` by output id, compact blocks for aggregated blocks, light-wallet `getoutkeys`, the WebSocket listener and BIP324 v2 transport) are described in [P2P protocol](p2p-protocol.md).
 
 ## Datadir layout
 

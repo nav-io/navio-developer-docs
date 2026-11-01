@@ -69,6 +69,27 @@ Keep it running. It will:
 3.  Construct a `blsct::ProofOfStake` with the hidden stake amount and blinding factor.
 4.  Self-verify, then `submitblock`.
 
+The node builds the block body: on BLSCT chains it merges all selected mempool transactions into **one aggregate** (`[coinbase, aggregate]`), keeping chained unconfirmed sends intact (no cut-through). The template defers a transaction that spends a staked commitment created earlier in the same template, and drops colliding staked-commitment outputs instead of failing the template.
+
+Common wallet-mode flags (full list: `navio-staker -help` on your release):
+
+| Flag                                | Purpose |
+| ----------------------------------- | ------- |
+| `-wallet=<name>`                    | Wallet whose staked commitments are used. |
+| `-walletpassphrase=<pw>` / `-stdinwalletpassphrase` | Unlock an encrypted wallet (prefer stdin; arguments show in the process list). |
+| `-coinbasedest=<address>`           | Address that receives rewards for the wallet's own (non-delegated) stakes. |
+| `-autoconsolidate` / `-autoconsolidateinterval=<s>` | Periodically merge small outputs such as accumulated rewards (default off / 3600 s). |
+| `-rpcwait` / `-rpcwaittimeout=<s>`  | Wait for the node's RPC server at startup. |
+| `-delegationrefresh=<s>`            | In wallet mode, the longest wait between retries of a failing `listdelegations` lookup (default 300, capped at one day). |
+
+### Behaviour changes on master
+
+The following `navio-staker` changes are merged on `master` and ship in the next release:
+
+-   **Own delegated stakes pay their reward address.** A wallet-mode staker also stakes the wallet's own [delegated](cold-staking.md) stakes; a block produced with one of them now pays the delegation's reward address instead of `-coinbasedest`, so `listdelegations` reports `rewards_received` correctly. It falls back to `-coinbasedest` against a node whose `listdelegations` lacks the new `commitment` field, and calls `listdelegations` only when the wallet's staked commitments change.
+-   **Backoff when the node is unreachable.** Instead of logging every cycle, the staker logs `Lost connection to the node` once, retries after about 2 s, doubles the wait up to 60 s, and logs `Reconnected to the node after N failed attempt(s)`. The dashboard shows `waiting for node` and counts each failure under `RPC errors`.
+-   **Backoff on `listdelegations` failures.** Same doubling from 2 s up to `-delegationrefresh`; a change in staked commitments is retried immediately. While it fails, not-yet-looked-up delegated stakes pay `-coinbasedest`.
+
 Flags: `navio-staker --help` on the binary matching your release.
 
 ## Unlock stake
@@ -90,7 +111,7 @@ Rewards flow to sub-addresses in the staking pool (`account = -2`).
 Inspect reward transactions with:
 
 ```bash
-navio-cli -testnet listblscttransactions "*" 100 0 true
+navio-cli -testnet listtransactions "*" 100 0 true
 ```
 
 filter for `category: "stake"`.

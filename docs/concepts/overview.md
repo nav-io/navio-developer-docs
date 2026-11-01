@@ -14,7 +14,7 @@
 
 -   **UTXO ledger** (with a Navio twist — see [outpoint model](outpoint.md)).
 -   **Block framing** — header, Merkle root, witness commitment.
--   **P2P** — version handshake, `inv`/`getdata`/`block`/`tx`/`addr`, compact blocks, DNS seeding.
+-   **P2P** — version handshake, `inv`/`getdata`/`block`/`tx`/`addr`, compact blocks, DNS seeding, optional BIP324 v2 transport. Navio adds output-id `getdata`, compact blocks for aggregated blocks, light-wallet output keys, a WebSocket listener for browser clients and an encrypted messaging overlay — see [P2P protocol](p2p-protocol.md).
 -   **RPC architecture** — JSON-RPC over HTTP, `navio-cli`, categories, cookie auth.
 -   **Fee market** — mempool, package relay, RBF semantics.
 -   **Wallet infrastructure** — BIP-32 HD derivation, BDB/SQLite wallet descriptors adapted for BLSCT keys.

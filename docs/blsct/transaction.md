@@ -26,7 +26,7 @@ Note: signatures are **not** in `scriptSig` — they are aggregated into `txSign
 
 ## CTxOut
 
-Defined in [`src/primitives/transaction.h`](https://github.com/nav-io/navio-core/blob/master/src/primitives/transaction.h) at line 228 (class) and line 156 (`CTxOutBLSCTData`). Members (in-memory):
+Defined in [`src/primitives/transaction.h`](https://github.com/nav-io/navio-core/blob/master/src/primitives/transaction.h) (`CTxOut`, `CTxOutBLSCTData`). Since v0.2.0 the point and proof types are the blst-backed `BlstG1Point` / `RangeProof<Blst>` (previously `MclG1Point` / `RangeProof<Mcl>`); the serialized bytes are unchanged. Members (in-memory):
 
 ```
 CTxOut
@@ -37,10 +37,10 @@ CTxOut
 └── predicate          VectorPredicate   empty unless PREDICATE_MARKER set
 
 CTxOutBLSCTData
-├── spendingKey        MclG1Point (48 bytes)   S' — stealth spend pubkey
-├── ephemeralKey       MclG1Point (48 bytes)   R = r · G
-├── blindingKey        MclG1Point (48 bytes)   B = r · S
-├── rangeProof         bulletproofs_plus::RangeProof<Mcl>   Bulletproofs++
+├── spendingKey        BlstG1Point (48 bytes)   S' — stealth spend pubkey
+├── ephemeralKey       BlstG1Point (48 bytes)   R = r · G
+├── blindingKey        BlstG1Point (48 bytes)   B = r · S
+├── rangeProof         bulletproofs_plus::RangeProof<Blst>   Bulletproofs++
 └── viewTag            uint16_t (2 bytes)      τ
 ```
 
@@ -54,7 +54,9 @@ Computed as:
 output_hash = SHA256(SHA256(serialize(CTxOut)))
 ```
 
-In the implementation this is `HashWriter{} << TX_NO_WITNESS(*this)` over the fully-serialised `CTxOut`. The output hash is the canonical identifier — see [outpoint model](../concepts/outpoint.md). It is stored in the block's tx-keys index for efficient sync.
+In the implementation this is `HashWriter{} << TX_NO_WITNESS(*this)` over the fully-serialised `CTxOut`. The output hash — the *output id* — is the canonical identifier: a `COutPoint` is exactly this value, `CTransaction` caches the ids of its outputs at construction, and the P2P layer can request a transaction by one of its output ids (`MSG_OUTPUT_HASH`). See [outpoint model](../concepts/outpoint.md) and [P2P protocol](../concepts/p2p-protocol.md#output-centric-identity).
+
+Block-undo data and the coin-statistics hash use a *stripped* form of `CTxOutBLSCTData` (keys, value commitments and view tag, without the range-proof body). Output ids are always computed over the full form.
 
 ## Aggregated signature
 
@@ -62,7 +64,7 @@ Covers:
 
 -   Every per-input authorisation.
 -   Balance proof (inputs − outputs − fee balance).
--   Fee proof (binds the explicit fee value to the signature via a Pedersen commitment carried in `PayFeePredicate` — see [Signatures → Fee-binding commitment](signatures.md#fee-binding-commitment)).
+-   Fee proof (binds the explicit fee value to the signature via a Pedersen commitment carried in `PayFeePredicate` — see [Signatures → Signatures inside a BLSCT transaction](signatures.md#signatures-inside-a-blsct-transaction)).
 -   Token / NFT authorisation where applicable.
 
 Verification batches these into one pairing-product equation per transaction. At block validation, transactions can be batched together for even cheaper amortised cost.
@@ -95,7 +97,13 @@ These use the inherited Bitcoin `CTxOut` without `blsctData`. They appear alongs
 
 ## Aggregated transactions
 
-Navio supports combining multiple independently-authored signed transactions into one: concatenate inputs, concatenate (non-fee) outputs, and aggregate the transaction signatures. The per-tx fee outputs collapse into a single merged fee output whose `nValue` is the sum of the inputs' fees and whose `PayFeePredicate` public key is the group sum of the per-tx fee commitments — the construction is linear in both the value and the blinding scalar, so the merged fee continues to verify under the aggregated signature. See [Signatures → Fee-binding commitment → Aggregation across transactions](signatures.md#aggregation-across-transactions), and the JS / SDK wrappers [`navio-blsct` → `CTx.aggregateTransactions`](../blsct-lib/transactions.md#ctx-aggregation) and [`NavioClient.aggregateTransactions`](../sdk/sending.md#aggregate-transactions).
+Navio supports combining multiple independently-authored signed transactions into one: concatenate inputs, concatenate (non-fee) outputs, and aggregate the transaction signatures. The per-tx fee outputs collapse into a single merged fee output whose `nValue` is the sum of the inputs' fees and whose `PayFeePredicate` public key is the group sum of the per-tx fee commitments — the construction is linear in both the value and the blinding scalar, so the merged fee continues to verify under the aggregated signature. See [Signatures → Aggregation](signatures.md#aggregation), and the JS / SDK wrappers [`navio-blsct` → `CTx.aggregateTransactions`](../blsct-lib/transactions.md#ctx-aggregation) and [`NavioClient.aggregateTransactions`](../sdk/sending.md#aggregate-transactions).
+
+The block assembler applies the same merge to all transactions of a block (`[coinbase, aggregate]`). Merging concatenates rather than cancels: when one merged transaction spends an output another creates, both the output and the spending input stay in the aggregate (no cut-through). See [Block format](block.md#block-body).
+
+### Wallet output shape
+
+With `-blsctpadoutputs=1` (default on master, next release) ordinary wallet sends always carry recipient + change outputs; when the inputs match amount + fee exactly, the change is a range-proofed **zero-value** output with memo `"Change"`, so every ordinary send has the same output count. Stake/unstake, token create/mint, NFT change and fee-0 aggregation candidates keep their own shapes. Library builders (`TxFactory` used directly, `libblsct`) do not pad unless asked.
 
 ## Size budget (typical)
 

@@ -74,6 +74,8 @@ Note the scalar-multiplication $v \cdot R$ still happens per output — the savi
 
 The [SDK](../sdk/sync.md) does this automatically; the explicit primitive is [`KeyManager.calculateViewTag`](../sdk/wallet.md#key-manager).
 
+Light wallets do not need range proofs to run this check. A node started with `-peeroutkeys` serves, per block, only each output's hash, blinding key, spending key and view tag plus the output hashes the block spends (`getoutkeys` / `outkeys`, service bit `NODE_OUTKEYS`); the wallet then fetches full transactions only for outputs that match. See [P2P protocol → Light-wallet output keys](p2p-protocol.md#light-wallet-output-keys-getoutkeys-outkeys).
+
 ## Signatures
 
 BLSCT transactions carry multiple kinds of BLS signatures, all aggregatable:
@@ -93,11 +95,16 @@ Tokens and NFTs are native BLSCT outputs — they carry the same commitment / ra
 
 | Observer sees                                                    | Observer does **not** see                                               |
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Block height, block hash, block time, coinstake marker, `posProof` | Validator identity, stake amount, or linkage of blocks by same staker |
+| Block height, block hash, block time, coinbase, `posProof`         | Validator identity, stake amount, or linkage of blocks by same staker |
 | Transaction hash, input count, output count, fee                 | Sender address, receiver address, amount, token id on BLSCT outputs     |
 | Output hashes, ephemeral public keys, view tags                  | Whether two outputs are to the same receiver                            |
 | Range proofs and balance signature                               | The committed amounts or blinding factors                               |
 | Script type (BLSCT vs. legacy transparent fallback, if any)      | Memo field (encrypted with the shared secret, only receiver can read)   |
+
+Wallet defaults narrow what the structural fields reveal:
+
+-   **Uniform output count.** With `-blsctpadoutputs=1` (default) every ordinary wallet send has a change output; when the inputs match amount + fee exactly (exact-amount sends, sweeps, subtract-fee sends) the wallet adds a **zero-value** change output, so these sends cannot be picked out by having one non-fee output. The cost is one extra output's fee (about 0.00137 NAV at the default rate) on those sends only. Zero-value change stays in the wallet as a 0-amount UTXO that ordinary sends skip and sweeps / `consolidate` collect. Stake operations, token creation/minting, NFT change and aggregation cover candidates keep their own shapes. `-blsctpadoutputs=0` restores the old behaviour. *(Merged on master; ships in the next release.)*
+-   **Cover traffic.** With `-aggregatesends=1` (default) a send is merged with fee-0 cover candidates from other wallets, and every block merges its transactions into one aggregate, so input and output counts per transaction say little about any single sender. See [P2P encrypted messaging → Cover-traffic aggregation](p2p-messaging.md#cover-traffic-aggregation).
 
 ## Where to go next
 

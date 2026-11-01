@@ -22,43 +22,37 @@ Identical to Bitcoin at the byte level. All BLSCT / PoPS blocks use the same 80-
 CBlock
 ├── Header              80 bytes
 ├── posProof            blsct::ProofOfStake (set-membership + range proof)
-├── vtx[]               CTransaction[]
-│   ├── vtx[0]          Coinbase (zero-value output)
-│   ├── vtx[1]          Coinstake (zero-value marker output, then reward outputs)
-│   └── vtx[2..]        Regular BLSCT transactions
-└── witness commitment  embedded in coinbase if any segwit-style fields used
+└── vtx[]               CTransaction[]
+    ├── vtx[0]          Coinbase: BLSCT reward output (+ optional operator-fee output)
+    └── vtx[1]          The block's user transactions, merged into one aggregate (if any)
 ```
 
 Field order per `primitives/block.h`: `READWRITE(obj.posProof, obj.vtx)` after the header.
 
+On BLSCT chains a block holds **at most two transactions**. The block assembler (`CreateNewBLSCTBlock` in `node/miner.cpp`) merges every user transaction it selects into one aggregate with `blsct::AggregateTransactions`; with a single user transaction it keeps that transaction (and its txid) as is. The aggregate concatenates the components' inputs and outputs in order, folds their fee outputs into one, and sums their signatures. It performs **no cut-through**: a chain of unconfirmed sends merged into one block keeps each intermediate change output together with the input that spends it. Nodes recognise the component transactions as **confirmed by containment** — see [P2P protocol → Aggregated blocks](../concepts/p2p-protocol.md#aggregated-blocks), which also covers the compact-block encoding (`sendcmpct` version 3, `cmpctaggblk`) that relays such blocks without re-downloading the aggregate.
+
+The template defers a transaction that spends a staked commitment created earlier in the same template to a later block, and drops colliding staked-commitment outputs instead of failing the template.
+
 ## Coinbase
 
-The first transaction is the coinbase. Its single output is zero-value; the real staker reward is paid in the coinstake. `vin[0].prev_out` is the null marker (32 zero bytes).
+The first transaction is the coinbase (`nVersion` carries the BLSCT marker, `vin[0].prevout` is null, `scriptSig` = `<height> OP_0`). It pays the block reward as a full BLSCT output addressed to the block producer's chosen destination (`coinbasedest` in `getblocktemplate`). When the template requests an operator fee split (`coinbasefeedest` / `coinbasefeebps`, used by [cold-staking](../node/cold-staking.md) operators), a second BLSCT output carries that share. Consensus binds only the coinbase's total amount; the split is builder policy. The coinbase signature aggregates the outputs' signatures and a balance signature.
 
-During the bootstrap PoW window (heights `2..110` on mainnet), the zero-value coinbase output **still carries a full Bulletproofs+ range proof and BLSCT keys** — the miner constructs it with `fAllowZeroValueRangeProof = true`.
+During the bootstrap PoW window (heights `2..110` on mainnet), the reward is zero but the coinbase output **still carries a full range proof and BLSCT keys** — the miner constructs it with `fAllowZeroValueRangeProof = true`.
 
 !!! note "Why a range proof on a zero-value coinbase"
     Normally `CreateOutput()` collapses a `0` amount into an unspendable `OP_RETURN` with no range proof. But the coinbase still carries balance and output signatures that are folded into the block's aggregate signature check — an `OP_RETURN` output (no range proof, no keys) would have nothing to sign over and the aggregate verification would fail. Passing `fAllowZeroValueRangeProof = true` forces a proper BLSCT output so the signatures remain valid.
 
 The **block-1 coinbase mints the entire initial supply**.
 
-## Coinstake (PoPS)
+## Proof of stake (PoPS)
 
-Every block carries a `blsct::ProofOfStake posProof` field (see [`primitives/block.h`](https://github.com/nav-io/navio-core/blob/master/src/primitives/block.h)). Structural markers:
+Every block carries a `blsct::ProofOfStake posProof` field (see [`primitives/block.h`](https://github.com/nav-io/navio-core/blob/master/src/primitives/block.h)). There is no coinstake transaction and no staked input in the block:
 
-```
-vtx[0] (coinbase) — null prev_out, zero-value output
-vtx[1] (coinstake) — first output is zero-value nonstandard marker
-block.posProof — encoded ZK proof (set-membership + range proof)
-```
-
-Key points about PoPS — applies to the current BLSCT networks (mainnet, testnet, and `blsctregtest`):
-
--   `posProof` does **not** identify the staker's locked UTXO. It contains a set-membership proof over the current staked-commitment set plus a range proof binding a hidden stake amount to the block's kernel-hash eligibility threshold.
+-   `posProof` does **not** identify the staker's locked output. It contains a set-membership proof over a sampled ring of the staked-commitment set plus a range proof binding the hidden stake amount to the block's kernel-hash eligibility threshold.
 -   Eligibility is verifiable with zero-knowledge — no validator identity, amount, or cross-block linkage is revealed.
--   Coinstake outputs pay the network's current PoPS subsidy plus returned principal as BLSCT outputs addressed to sub-addresses in the staker's staking pool (account `-2`).
+-   The stake stays locked; only the reward is paid, through the coinbase.
 
-Full math, verifier equations, serialisation, source-tree map: [BLSCT → Proof-of-Private-Stake](pops.md).
+Applies to the current BLSCT networks (mainnet, testnet, and `blsctregtest`). Full math, verifier equations, serialisation, source-tree map: [BLSCT → Proof-of-Private-Stake](pops.md).
 
 ## Fee handling
 
@@ -112,4 +106,4 @@ Both `nMinimumChainWork` and `defaultAssumeValid` are zero — this is a fresh c
 -   `src/blsct/pos/` — PoS / PoPS consensus rules.
 -   `src/consensus/params.h` — chain-level constants (block time, max size, activation heights).
 
-Current chainparams: mainnet uses a bootstrap PoW window through height `110` (PoPS from height `111`), then PoPS with `nPosTargetSpacing = 120` and `nBLSCTBlockReward = 8 NAV`; testnet uses a bootstrap PoW window through height `1000`, then PoPS with `nPosTargetSpacing = 60` and `nBLSCTBlockReward = 4 NAV`.
+Current chainparams: mainnet uses a bootstrap PoW window through height `110` (PoPS from height `111`), then PoPS with `nPosTargetSpacing = 120` and `nBLSCTBlockReward = 8 NAV`; testnet uses a bootstrap PoW window through height `1000`, then PoPS with `nPosTargetSpacing = 120` and `nBLSCTBlockReward = 8 NAV`.

@@ -21,7 +21,7 @@ Design paper (initial reference, shape differs in implementation):
 
 | Symbol                                 | Meaning                                                                                          |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| $\mathbb{G}$                           | Prime-order group derived from BLS12-381's $G_1$ subgroup (via `Mcl` arithmetic backend).         |
+| $\mathbb{G}$                           | Prime-order group derived from BLS12-381's $G_1$ subgroup (via the blst arithmetic backend, `Blst`).         |
 | $p$                                    | Group order (255-bit prime).                                                                     |
 | $\mathbb{F}_p$                         | Scalar field.                                                                                    |
 | $G$, $H$                               | Two independent base generators. $G$ = `Point::GetBasePoint()`; $H$ = `deriver("proof-of-stake").Derive(G, 0, TokenId())` — nothing-up-my-sleeve, discrete log unknown. |
@@ -248,7 +248,7 @@ static uint32_t BucketTime(const uint32_t& time) {
 uint256 CalculateKernelHashWithChainWork(
     uint32_t prevTime, uint64_t stakeModifier,
     const arith_uint256& prevChainWork, uint32_t time,
-    const MclG1Point& phi)
+    const BlstG1Point& phi)
 {
     HashWriter ss{};
     ss << prevTime
@@ -519,9 +519,9 @@ Hard finality checkpoints in `Consensus::Params::finalityCheckpoints`. Any candi
 
 ### 12.4. Subgroup membership on G1 deserialization
 
-`MclG1Point::SetVch` calls `mclBnG1_isValidOrder` after `mclBnG1_deserialize` on every G1 point it accepts. BLS12-381 G1 has a cofactor; curve membership alone does not imply prime-order-subgroup membership, and the discrete-log assumption only holds on the order-`r` subgroup. The check covers every deserialised G1 point — PoPS proofs, range proofs, signatures, public keys — with an explicit carve-out for the identity (the point at infinity is a valid BLSCT-commitment value).
+`BlstG1Point::SetVch` runs a subgroup check (`blst_p1_in_g1`) after decompressing every G1 point it accepts. BLS12-381 G1 has a cofactor; curve membership alone does not imply prime-order-subgroup membership, and the discrete-log assumption only holds on the order-`r` subgroup. The check covers every deserialised G1 point — PoPS proofs, range proofs, signatures, public keys — with an explicit carve-out for the identity (the point at infinity is a valid BLSCT-commitment value).
 
-Subgroup checks are the largest per-point cost in deserialisation, so the codebase additionally exposes `MclG1Point::SubgroupCheckDeferralScope`: within a scope, individual `SetVch` calls queue points; on scope exit, `BatchCheckSubgroup` validates the entire batch via a single random-linear-combination multi-exp. `ProofOfStake::Unserialize` uses this to amortise the tens-of-G1-points in a PoPS proof into one check without relaxing the rule.
+The codebase also exposes `BlstG1Point::SubgroupCheckDeferralScope`: within a scope, individual `SetVch` calls queue points and `BatchCheckSubgroup` validates them together on scope exit. With blst the batch is still checked **point by point** (`blst_p1_in_g1`), not by a random linear combination: G1's cofactor has 3 as its smallest prime factor, so a random combination would miss an order-3 component with probability 1/3 and make acceptance non-deterministic across nodes.
 
 ### 12.5. Slashing (out of scope)
 

@@ -39,7 +39,7 @@ Storing $B = r \cdot S_{a,i}$ (instead of only $R$) is the optimisation that mak
 For each output that passes the view-tag filter, the code path is `KeyMan::IsMine` → `CalculateHashId` (`src/blsct/wallet/helpers.cpp:60`):
 
 1.  Reuse $\eta$ from stage 1.
-2.  Compute $\text{tweak} = \text{H}_s(\eta, \text{salt}{=}0)$ via `MclG1Point::GetHashWithSalt(0)`.
+2.  Compute $\text{tweak} = \text{H}_s(\eta, \text{salt}{=}0)$ via `BlstG1Point::GetHashWithSalt(0)`.
 3.  Invert the stealth formula: $S_{a,i}^{\text{derived}} = S' - \text{tweak} \cdot g_1$, where $S' = \text{output.blsctData.spendingKey}$.
 4.  Wrap $S_{a,i}^{\text{derived}}$ as a `blsct::PublicKey` and take its `CKeyID` (`Hash160`). This is the **canonical `hashId`**.
 5.  Look `hashId` up in the wallet's sub-address map (`HaveSubAddress(hashId)`). If present, the output belongs to the sub-address registered under that id.

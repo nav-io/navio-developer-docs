@@ -72,7 +72,7 @@ For each output sent to a sub-address, the sender picks a random scalar $r \in \
 -   **Stored blinding helper** $B = r \cdot S_{a,i}$ — stored in the output as `blindingKey`.
 -   **Shared point** $\eta = v \cdot B = r \cdot V_{a,i}$ — the Diffie–Hellman point shared between sender (who knows $r$) and receiver (who knows $v$). In the wallet code path this is what `CalculateNonce(blindingKey, viewKey)` computes.
 -   **View tag** $\tau = \text{SHA256}\bigl(R \cdot v\bigr).\text{GetUint64}(0) \,\&\, \text{0xFFFF}$ — a **2-byte** (16-bit) optimisation for scanning. Computed by `CalculateViewTag`.
--   **Stealth spend pubkey** $S' = S_{a,i} + \text{H}_s(\eta, \text{salt}{=}0) \cdot g_1$, where $\text{H}_s(\cdot, \text{salt}{=}0)$ is `MclG1Point::GetHashWithSalt(0)` applied to the shared point $\eta$. Spending this output requires the stealth private scalar
+-   **Stealth spend pubkey** $S' = S_{a,i} + \text{H}_s(\eta, \text{salt}{=}0) \cdot g_1$, where $\text{H}_s(\cdot, \text{salt}{=}0)$ is `BlstG1Point::GetHashWithSalt(0)` applied to the shared point $\eta$. Spending this output requires the stealth private scalar
 
     $$
     s' \;=\; s \,+\, m_{a,i} \,+\, \text{H}_s(\eta, \text{salt}{=}0)
@@ -120,7 +120,7 @@ audit_key_bytes = v (32 bytes, view scalar)  ||  S (48 bytes, spend pubkey in G_
 
 It does **not** reveal $s$, so no spending is possible.
 
-Audit keys are the primitive behind watch-only wallets. The SDK exposes [`keyManager.getAuditKeyHex()`](../sdk/wallet.md#audit-key) and [`restoreFromAuditKey`](../sdk/client.md#audit-key-restore); the RPC equivalent is [`getblsctauditkey`](../rpc/blsct.md#getblsctauditkey) and [`importblsctauditkey`](../rpc/blsct.md).
+Audit keys are the primitive behind watch-only wallets. The SDK exposes [`keyManager.getAuditKeyHex()`](../sdk/wallet.md#audit-key) and [`restoreFromAuditKey`](../sdk/client.md#audit-key-restore); the RPC equivalent is [`getblsctauditkey`](../rpc/blsct.md#getblsctauditkey), and a node-side audit wallet is created with `createwallet` passing the audit key as `seed` (see [Audit wallet](../guides/audit-wallet.md)).
 
 ## BIP-39 mnemonic support
 

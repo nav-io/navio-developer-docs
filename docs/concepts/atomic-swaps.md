@@ -181,5 +181,6 @@ Time locks or other conditions can be added via BLSCT scripts, enabling e.g. **l
 ### Limitations
 
 -   **No preimage-based atomicity with external chains.** This pattern only works inside Navio. Use HTLC swaps for cross-chain.
--   **Order matching is off-chain** — the protocol defines settlement, not discovery. A relay service, p2p message bus, or dApp is required to circulate orders.
+-   **Order matching is off-chain** — the protocol defines settlement, not discovery. A relay service, p2p message bus, or dApp is required to circulate orders. `naviod` ships one: RFQ requests, quotes and standing orders over the [p2pmsg overlay](p2p-messaging.md#rfq-token-swaps) (fungible token ids and NFT token ids are both accepted).
 -   **Fee coordination.** Either party must cover the transaction fee; the order must explicitly encode who pays.
+-   **Unconfirmed swap outputs.** A taker wallet that broadcast a swap with `acceptquotewallet` trusts its own change immediately, but the bought output is funded only by the maker's inputs and stays untrusted until the swap confirms: the maker can still double-spend a quote input before then. If that happens, the wallet marks the swap conflicted and the taker's coins return. See [Outpoint model → Wallet behaviour for merged sends](outpoint.md#wallet-behaviour-for-merged-sends).

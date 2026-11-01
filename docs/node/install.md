@@ -100,6 +100,7 @@ rpcuser=$(whoami)
 rpcpassword=$(openssl rand -base64 32)
 
 [test]
+# testnet has no built-in seeds; add peers explicitly
 addnode=testnet.nav.io
 addnode=testnet2.nav.io
 EOF

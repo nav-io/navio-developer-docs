@@ -40,7 +40,33 @@ Operational checklist:
 
 -   Monitor `getblockchaininfo` for `softforks` status.
 -   On activation block height + `6`, confirm `bestblockhash` matches other upgraded nodes and at least one block explorer.
--   If the node forked off (rare if you upgraded), `-reindex` after upgrading.
+-   If the node forked off, follow [Recovering from a version-mismatch fork](#recovering-from-a-version-mismatch-fork).
+
+## Recovering from a version-mismatch fork
+
+A node running an older consensus version than the rest of the network can reject a block the network accepts (or accept one it rejects) and then follow its own branch. Symptoms: `getblockcount` stops advancing or diverges from explorers, `bestblockhash` differs from other nodes at the same height, `getchaintips` lists the network's tip as `invalid` or `headers-only`, and stakers on the node keep producing blocks nobody else builds on.
+
+1.  **Stop `navio-staker`** so it does not keep extending the wrong branch.
+2.  **Upgrade `naviod`** to the current release. When building from source, use a fresh build directory so no stale objects from the old version are linked in, and confirm `naviod -version` before restarting.
+3.  **Find the fork point.** Compare `getblockhash <h>` with a trusted explorer or an up-to-date node to find the first height where they differ.
+4.  **Clear the invalid mark** the old binary left on the canonical branch: `navio-cli reconsiderblock <canonical block hash>` (the first canonical block after the fork point, or the canonical tip).
+5.  **Make sure the node can fetch that branch.** If its peers are on the old branch too, connect to an up-to-date node: `navio-cli addnode <host> onetry` (on mainnet, `seed.nav.io` resolves to such peers).
+6.  If it still prefers its own branch, `navio-cli invalidateblock <first block of the wrong branch>`; the node then reorganises onto the canonical chain. `-reindex` is the last resort.
+7.  Confirm `bestblockhash` matches the network, then restart the staker.
+
+Wallet transactions confirmed only on the abandoned branch become unconfirmed again after the reorg; coinbase rewards minted on it disappear.
+
+## v0.2.x upgrade notes
+
+-   **v0.2.0** was a mandatory consensus upgrade ("every node must update", per its release notes) and replaced the BLS backend (herumi/mcl → vendored supranational/blst; on-chain formats unchanged). Nodes on v0.1.x are not compatible with the current network.
+-   **v0.2.2** switched the p2pmsg overlay to envelope v2 (`NODE_P2PMSG_V2`). v0.2.1-and-older nodes speak envelope v1 and the two overlays do not exchange messages, so aggregation cover candidates, RFQ quotes and user messages only reach peers on v0.2.2 or later.
+-   **Next release** (changes merged on `master`):
+    -   `-coinstatsindex` is wiped and rebuilt from genesis in the background on the first start, because coin hashing became canonical. A pruned node with `-coinstatsindex` must disable the index or `-reindex`. After a downgrade, delete `indexes/coinstats` (or `-reindex`) — and again after re-upgrading.
+    -   If a node ever crashed or was killed while flushing the chainstate during token/NFT or staking activity, restart it once with `-reindex-chainstate` (pruned nodes: `-reindex`) to rebuild the token and staked-commitment sets.
+    -   `-checkpoints` has no effect and logs a warning; remove it.
+    -   Testnet and the default signet no longer ship seeds; add `addnode=` lines.
+    -   `-whitelist` no longer applies to WebSocket (`-p2pwsbind`) peers.
+    -   `-p2pmsgstoresize` is split into per-scope budgets; an inbox-only node that wants to keep as many messages as before needs a proportionally larger value.
 
 ## Upgrading across testnet resets
 
