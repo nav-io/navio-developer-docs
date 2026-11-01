@@ -27,6 +27,8 @@ interface SendTransactionOptions {
     memo?: string;                    // UTF-8, stored encrypted
     subtractFeeFromAmount?: boolean;
     tokenId?: string | null;          // null for NAV (default)
+    selectedUtxos?: string[];         // outputHashes; skips automatic selection
+    randomBlindingKeys?: boolean;     // default false — see Output authorship
 }
 ```
 
@@ -169,11 +171,37 @@ The default selector:
 3.  Creates a BLSCT output to the destination and a change output back to a sub-address in the change pool (`account = -1`).
 4.  Balances amount commitments.
 
-Tweakable via raw-transaction RPC flows for fine-grained control.
+Pass `selectedUtxos` (a list of `outputHash`es) to choose inputs yourself. Staked commitments are never selected (see [Staked outputs](balances.md#staked-outputs)). Coins backing a live [standing order](trading.md#standing-orders) are reserved only against other orders, not against ordinary sends.
 
 ## Fee estimation
 
-The SDK asks the backend for a fee rate (via Electrum's `blockchain.estimatefee` or RPC `estimatesmartfee`) and applies it to the estimated transaction size. No per-call override today — use the raw-transaction flow if you need explicit fee control.
+The SDK computes the fee locally from the size of the signed transaction at the BLSCT default fee rate (125 sat per byte, plus a size headroom), rebuilding the outputs until the fee covers the signed size. No per-call fee override today — use the raw-transaction flow if you need explicit fee control. Since 0.4.0, wallet funding is checked against the fee of the built transaction rather than a rough pre-build estimate.
+
+## Output authorship {#output-authorship}
+
+Since **0.2.0**, the blinding scalar `k` of every BLSCT output the wallet creates is derived from the wallet seed instead of drawn at random and discarded. The sender can therefore recompute it later, even after restoring from the mnemonic alone, and prove they created a given output.
+
+```ts
+// Recover the private blinding scalar of an output this wallet created
+const rec = await client.recoverBlindingKey({ txid, vout });
+rec.blindingKey;   // private scalar, 64 hex — treat as a secret
+rec.publicKey;     // k · G, 96 hex — the output's on-chain ephemeralKey
+rec.source;        // 'stored' (wallet DB) or 'derived' (recomputed from the seed)
+
+// Sign a message with it, e.g. to back a refund claim
+const { signature, blindingKey } = await client.signOutput({ txid, vout, message: 'refund to …' });
+// verifies with navio-blsct: Signature.verify(publicKey, message), publicKey = blindingKey
+```
+
+-   `signOutput` signs the message exactly as given and returns the **public** key the signature verifies against: `k · G`, which is on chain as the output's `blsctData.ephemeralKey`. It is not `WalletOutput.blindingKey`, which navio-core computes as `k · sk_destination`.
+-   The derivation binds the seed to an anchor input (the smallest outid among the inputs the sender contributed) and a per-output counter; the exact construction is in the [navio-sdk 0.2.0 changelog](https://github.com/nav-io/navio-sdk/blob/master/CHANGELOG.md). navio-core exposes the same capability through the `signblsctoutput` RPC.
+-   Recovery does not rely on output or input positions, which block aggregation and input shuffling change. Every candidate is checked against the output's on-chain point, so a match is proof and a wrong candidate can never yield a false key. Swap outputs remain recoverable.
+-   The scalar is also stored when the output is created, in its own `output_blinding_keys` table, never in `WalletOutput`.
+
+!!! warning "Only outputs created by 0.2.0 or later"
+    Outputs created by navio-sdk 0.1.36 or earlier, or by another wallet, used a random scalar that no longer exists. They cannot be recovered.
+
+To opt out, set `deterministicBlindingKeys: false` on the client, or `randomBlindingKeys: true` on an individual send (`sendTransaction`, `sendToMany`, token / NFT sends, `delegateStake`, `unstake`). Those outputs are then unrecoverable.
 
 ## Error cases
 

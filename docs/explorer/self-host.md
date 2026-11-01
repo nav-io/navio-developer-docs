@@ -147,7 +147,7 @@ See the [reindex guide](reindex.md).
 ```yaml
 services:
   naviod:
-    image: navio/naviod:latest
+    build: https://github.com/nav-io/navio-docker.git   # official navio-core release binaries
     volumes: [./naviod-data:/home/navio/.navio]
     ports: ["33670:33670"]
     environment:

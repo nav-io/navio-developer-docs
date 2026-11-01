@@ -17,10 +17,14 @@ prune=5500        # keep up to 5500 MiB of block files
 -   `prune=1` turns on pruning with the default target (~550 MiB on Bitcoin; check the current navio-core default).
 -   `prune=<mib>` targets approximately that many MiB of block files. Chainstate size is not affected.
 
-Incompatible with:
+Incompatible with (startup fails with an error):
 
 -   `txindex=1` — pruning removes the blocks that the index would reference.
--   `blockfilterindex=1` / `coinstatsindex=1` — same reason.
+-   `outindex=1` — the output-hash index needs the full block history.
+-   `peeroutkeys=1` — light-wallet `outkeys` replies are read from block files.
+-   `reindex-chainstate` — use a full `-reindex` on a pruned node.
+
+`blockfilterindex` and `coinstatsindex` can run on a pruned node, but an index that has to be rebuilt from genesis needs blocks the node no longer has. The next release rebuilds `-coinstatsindex` once after upgrading (see [Upgrading](upgrading.md#v02x-upgrade-notes)); a pruned node with that index must disable it or `-reindex`.
 
 Serving the chain to other peers with `prune` is allowed (limited to the window of retained blocks). Historical queries (`getblock`, `getrawtransaction` for old txs) return errors once the relevant block is pruned.
 
@@ -83,7 +87,8 @@ The [SDK sync manager](../sdk/sync.md#reorgs) exposes a reorg callback and handl
 | Scenario                                         | Configure                                                   |
 | ------------------------------------------------ | ----------------------------------------------------------- |
 | Wallet-only node, minimal disk                   | `prune=2048`                                                |
-| Running an explorer                              | `txindex=1`, no prune                                       |
+| Running an explorer                              | `txindex=1`, `outindex=1`, no prune                         |
+| Serving light wallets                            | `peeroutkeys=1`, no prune                                   |
 | Running ElectrumX                                | `txindex=1`, optional `-dbcache=4000` for faster sync       |
 | Archival / analytics                             | `txindex=1`, `blockfilterindex=1`, `coinstatsindex=1`       |
 | Regtest for CI                                   | No pruning, fresh datadir per test, `-dbcache=200`          |

@@ -48,7 +48,7 @@ Standalone `navio-blsct` exposes different Signet / Regtest HRPs (`snv`, `rnav`)
 | Parameter            | Value |
 | -------------------- | ----- |
 | Genesis client       | `0.1.0` (first release; activated mainnet) |
-| Latest release       | `0.1.3` |
+| Latest release       | `0.2.2` (2026-09-27) |
 | Genesis hash         | `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13` |
 | Merkle root          | `96f8dfcc3c433012bc9d4b42e85fe543936609f87fce2cc9d5484383ee2f9aaf` |
 | Genesis time         | `1782910800` (2026-07-01 13:00 UTC) |
@@ -76,11 +76,11 @@ Source: `src/kernel/chainparams.cpp`, `src/consensus/params.h`.
 | `nPosTargetSpacing`               | 120 s |
 | `nPosTargetTimespan`              | 3600 s |
 | `nPePoSMinStakeAmount`            | 10,000 NAV |
-| `posLimit`                        | `0x00000000ffffffff…` |
+| `posLimit`                        | `0x0000ffffffffffff…` |
 | Max block size                    | 4 MB |
 | BLSCT                             | Mandatory for transactions on this chain |
 
-Mainnet block reward is **8 NAV** — `2 * COIN * (nPosTargetSpacing / 30)` with a 120 s target spacing. (Only the 60 s networks — signet/regtest — yield 4 NAV.)
+Mainnet block reward is **8 NAV** — `2 * COIN * (nPosTargetSpacing / 30)` with a 120 s target spacing. (`blsctregtest`, with 60 s spacing, yields 4 NAV.)
 
 Since navio-core **0.1.3** ([PR #303](https://github.com/nav-io/navio-core/pull/303)) mainnet ships a populated `chainTxData` (`nTime = 1783350480`, `nTxCount = 4018`, `dTxRate ≈ 0.0083`, sampled at height 3845) so the node can estimate sync progress.
 
@@ -95,8 +95,9 @@ Since navio-core **0.1.3** ([PR #303](https://github.com/nav-io/navio-core/pull/
 | `nPosTargetSpacing`               | 120 s |
 | `nPosTargetTimespan`              | 1800 s |
 | `nPePoSMinStakeAmount`            | 10,000 NAV |
-| `fPoPSHardened`                   | `false` |
-| `posLimit`                        | `0x0000ffffffffffff…` (easier) |
+| `fPoPSHardened`                   | `true` |
+| `nPoPSKernelV2Height`             | 22000 (mainnet / `blsctregtest`: 0) |
+| `posLimit`                        | `0x0000ffffffffffff…` |
 
 ### Signet / Regtest / BLSCT Regtest
 
@@ -110,8 +111,8 @@ Since navio-core **0.1.3** ([PR #303](https://github.com/nav-io/navio-core/pull/
 
 | Constant                    | Value |
 | --------------------------- | ----- |
-| `MAX_BLOCK_SIZE` (BLSCT chains) | 4,000,000 bytes |
-| `MAX_BLOCK_WEIGHT`          | 16,000,000 (after post-SegWit weighting) |
+| `MAX_BLOCK_SERIALIZED_SIZE` | 4,000,000 bytes |
+| `MAX_BLOCK_WEIGHT`          | 4,000,000 |
 | `COIN`                      | 100,000,000 sats / NAV |
 | `COINBASE_MATURITY`         | 100 blocks |
 
@@ -124,8 +125,8 @@ Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
 | Minimum stake (mainnet/testnet)   | 10,000 NAV |
 | Minimum stake (`blsctregtest`)    | 100 NAV |
 | Stake commitment set cap          | $N = 1024$ (`SetMemProofSetup::N`, padded to next power of two) |
+| Sampled ring size                 | 16 (`nStakedCommitmentLimit`, all BLSCT chains) |
 | Minimum set size                  | 2 (smaller rejected by consensus to avoid de-anonymisation) |
-| Coinstake marker                  | `vtx[1].vout[0]` is zero-value nonstandard |
 | PoPS proof                        | set-membership (modified RingCT 3.0) + Bulletproofs++ range proof |
 | Entropy bindings                  | $\eta_{\text{FS}} = H(\text{prevHash} \Vert \text{prevStakeModifier})$; $\eta_\varphi = H(\text{prevHeight} \Vert \text{prevStakeModifier} \Vert \text{TX\_NO\_WITNESS(vtx)})$ |
 | `MODIFIER_INTERVAL_RATIO`         | 3 |
@@ -159,11 +160,12 @@ Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
 | Encryption                          | AES-256-GCM                 |
 | IV                                  | 12 bytes, random per encryption |
 
-## DNS seeds
+## Seeds
 
 | Network | Seed hostnames                                    |
 | ------- | ------------------------------------------------- |
-| testnet | `testnet.nav.io`, `testnet2.nav.io`                |
+| testnet | none built in; connect with `addnode=testnet.nav.io` / `testnet2.nav.io` |
+| signet  | none (custom signets: `-signetseednode`)           |
 | mainnet | DNS seed `seed.nav.io`; fixed bootstrap seed `blocks.nav.io` (`168.119.249.67:48470`) |
 
 ## Default datadir paths
@@ -175,3 +177,47 @@ Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
 | Windows | `%APPDATA%\Navio\`                                    |
 
 Testnet under `testnet7/`, signet under `signet/`, regtest under `regtest/`, and BLSCT regtest under `blsctregtest/`.
+
+## P2P service bits
+
+Navio-specific bits use the experiment range (24–31). See [P2P protocol → Service bits](../concepts/p2p-protocol.md#service-bits).
+
+| Bit | Flag                  | Enabled by |
+| --- | --------------------- | ---------- |
+| 11  | `NODE_P2P_V2`         | `-v2transport=1` (default off) |
+| 24  | `NODE_P2PMSG`         | not advertised (envelope v1) |
+| 25  | `NODE_P2PMSG_LEAF`    | light clients |
+| 26  | `NODE_P2PMSG_ARCHIVE` | `-p2pmsgarchive=1` |
+| 27  | `NODE_P2PMSG_V2`      | `-p2pmsg=1` (default on) |
+| 28  | `NODE_OUTKEYS`        | `-peeroutkeys=1` |
+| 30  | `NODE_P2P_WS`         | usable `-p2pwsbind` listener |
+
+## P2P protocol constants
+
+| Constant | Value |
+| -------- | ----- |
+| `MSG_OUTPUT_HASH` inventory type | 8 |
+| `MSG_DTX` / `MSG_DWTX` (Dandelion++) | 6 / 7 |
+| Compact blocks for aggregated blocks | `sendcmpct` version 3 (`CMPCTBLOCKS_AGGREGATE_VERSION`); BIP152 stays version 2 |
+| Remembered aggregate component lists | 16 blocks |
+| `getoutkeys` max range (`MAX_GETOUTKEYS_SIZE`) | 1000 blocks |
+| `outkeys` reply cap (`-outkeysmaxbytes`) | 4,000,000 bytes (first block always sent) |
+| `wsendpoint` URL max | 256 bytes |
+| WebSocket upgrade request / frame payload max | 8 KiB / 4 MiB |
+
+## p2pmsg constants
+
+| Constant | Value |
+| -------- | ----- |
+| Envelope version | 2 |
+| Default PoW (`DEFAULT_POW_BITS`) | 23 leading zero bits |
+| PoW timestamp window | ±120 s |
+| Detection flag size | 83 bytes (FMD2, γ = 24; clue key 1152 bytes) |
+| Max user message (topic + body, `MAX_USER_MSG_BYTES`) | 3584 bytes |
+| User store default / split | 64 MiB; inbox 40 % / session 40 % / broadcast 20 % |
+| User store expiry | 30 days |
+| Archive default size / expiry | 4096 MiB / 14 days |
+| Archive response caps | 500 entries, 50,000 scanned, 2 MiB |
+| Cover pool target / max / max per aggregate | 20 / 512 / 16 candidates |
+| Cover ratio (`COVER_INPUT_RATIO`) | 1 cover per 4 own inputs |
+| Candidate pull interval | 60 s |

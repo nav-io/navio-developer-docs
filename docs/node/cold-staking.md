@@ -137,8 +137,18 @@ Flags:
 | `-delegationkey=<hex>`      | The delegation private key inline. Mutually exclusive with `-delegationkeyfile`.                 |
 | `-operatoraddress=<addr>`   | BLSCT address receiving the `-operatorfee` share of delegated block rewards.                     |
 | `-operatorfee=<bps>`        | Operator fee in basis points `[0, 10000]` (default 0).                                           |
-| `-delegationrefresh=<sec>`  | Chain rescan interval for new delegations (default 300).                                         |
-| `-statsfile=<path>`         | Maintain per-delegation accounting as JSON: blocks accepted/rejected per delegation, last block hash/time, reward address. |
+| `-delegationrefresh=<sec>`  | Chain rescan interval for new delegations (default 300, capped at one day). In wallet mode it is the longest wait between retries of a failing `listdelegations`. |
+| `-statsfile=<path>`         | Maintain per-delegation accounting as JSON: blocks accepted/rejected per delegation, last block hash/time, reward address. Written after every accepted block and delegation refresh. |
+
+**Stats file.** The staker writes `<statsfile>.tmp` and renames it over the previous file, so a reader never sees a half-written file. On Windows, where a rename is refused while another process holds the old file open, the staker retries the rename while it is refused (access denied / busy) and stops at once on any other error; if every attempt fails it logs `Could not rename` and removes the `.tmp`. Monitors should open the file briefly and tolerate a missed update. *(Retry and cleanup: merged on master, next release.)*
+
+**Resilience** *(merged on master, next release)*:
+
+-   If the delegation rescan (`liststakedcommitmentsdata`) gets an RPC error — for example from a node still warming up after a restart — the staker keeps staking the delegations it already tracks, with their statistics, logs `Could not load staked commitments data`, and retries at the next `-delegationrefresh`.
+-   While the node is unreachable the staker backs off (2 s doubling to 60 s) instead of logging every cycle, and rescans delegations on the first cycle after reconnecting.
+
+!!! tip "Owner wallets that also stake"
+    A wallet-mode `navio-staker` (no `-delegated`) also stakes the wallet's own delegated stakes. From the next release it pays those blocks to the delegation's reward address, so `listdelegations` shows them under `rewards_received`; entries carry a new `commitment` field (same encoding as `liststakedcommitments`). See [Staking → Behaviour changes on master](staking.md#behaviour-changes-on-master).
 
 ## RPC quick reference
 
@@ -154,7 +164,7 @@ Flags:
 | `getblocktemplate {"coinbasedest": A, "coinbasefeedest": B, "coinbasefeebps": N}` | node | Coinbase split: `N/10000` of the reward to `B`, rest to `A`. |
 
 !!! note "Version availability"
-    The core flow — `delegatestake`, `liststakedcommitmentsdata`, `navio-staker -delegated`, the operator fee split, revocation — ships in **v0.1.7**. The usability layer — `listdelegations`, `liststakingrewards`, `redelegatestake`, `compounddelegations`, `-delegationkeyfile`, `-statsfile`, per-tip scan caching and `height`/`confirmations` fields — is merged on master ([PR #321](https://github.com/nav-io/navio-core/pull/321)) and lands in the next release.
+    The core flow — `delegatestake`, `liststakedcommitmentsdata`, `navio-staker -delegated`, the operator fee split, revocation — ships in **v0.1.7**. The usability layer — `listdelegations`, `liststakingrewards`, `redelegatestake`, `compounddelegations`, `-delegationkeyfile`, `-statsfile`, per-tip scan caching and `height`/`confirmations` fields — ships in **v0.1.8** ([PR #321](https://github.com/nav-io/navio-core/pull/321)). Delegated-stake reward routing in wallet mode, the `listdelegations` `commitment` field and the staker backoff/stats-file fixes described above are merged on master for the next release.
 
 ## Troubleshooting
 

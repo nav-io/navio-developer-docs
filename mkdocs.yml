@@ -150,6 +150,7 @@ nav:
           - Outpoint model: concepts/outpoint.md
           - Consensus & supply: concepts/consensus.md
           - Networks: concepts/networks.md
+          - P2P protocol: concepts/p2p-protocol.md
           - Wallet formats: concepts/wallet-formats.md
           - Atomic swaps: concepts/atomic-swaps.md
           - P2P encrypted messaging: concepts/p2p-messaging.md
@@ -201,12 +202,14 @@ nav:
           - Synchronization: sdk/sync.md
           - Balances & UTXOs: sdk/balances.md
           - Sending transactions: sdk/sending.md
+          - Staking & cold staking: sdk/staking.md
           - Token trading (RFQ swaps): sdk/trading.md
           - Tokens & NFTs: sdk/tokens.md
           - Database & storage: sdk/database.md
           - Encryption: sdk/encryption.md
           - Examples: sdk/examples.md
           - API reference: sdk/api/README.md
+          - Messaging library (navio-p2pmsg): sdk/p2pmsg.md
     - libblsct-bindings:
           - blsct-lib/index.md
           - TypeScript / JavaScript:

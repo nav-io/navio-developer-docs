@@ -36,8 +36,17 @@ navio-cli getmempoolinfo | jq '.size, .bytes, .usage, .mempoolminfee'
 Navio does **not** ship a `getstakinginfo` RPC. Verify the staker is functioning by inspecting:
 
 -   The `navio-staker` process's own stdout/stderr — it logs each template poll, eligibility check, and submit result.
--   `navio-cli listblscttransactions "*" 50 0 true | jq '[.[] | select(.category == "stake")] | length'` — count of recent stake rewards received by this wallet.
--   Block-height advancement at the expected rate (~120 s on mainnet, ~60 s on testnet).
+-   `navio-cli listtransactions "*" 50 0 true | jq '[.[] | select(.category == "stake")] | length'` — count of recent stake rewards received by this wallet.
+-   Block-height advancement at the expected rate (~120 s on mainnet and testnet).
+-   The staker's own log for connection backoff: `Lost connection to the node` / `Reconnected to the node after N failed attempt(s)` (next release). Operators in `-delegated` mode can watch the `-statsfile` JSON.
+
+### Peer services
+
+```bash
+navio-cli getpeerinfo | jq '.[] | {addr, servicesnames, transport_protocol_type, websocket, ws_port, ws_url}'
+```
+
+`servicesnames` shows Navio's service bits (`P2P_V2`, `P2PMSG_V2`, `P2PMSG_LEAF`, `P2PMSG_ARCHIVE`, `OUTKEYS`, `P2P_WS`); `websocket` is `true` for peers connected through `-p2pwsbind`, and `ws_port` / `ws_url` appear for peers that announced a WebSocket endpoint. `getp2pmsginfo` reports overlay health: `relay_capable_peers`, `leaf_peers`, `archive_peers`, and the `store` / `archive` objects. See [P2P protocol](../concepts/p2p-protocol.md#service-bits).
 
 ## Metrics via Prometheus
 
@@ -52,7 +61,7 @@ Starter Python script:
 from prometheus_client import start_http_server, Gauge
 import requests, time
 
-RPC = "http://user:pass@127.0.0.1:33677/"
+RPC = "http://user:pass@127.0.0.1:48471/"  # mainnet; testnet 33677
 m_blocks = Gauge("navio_block_height", "Current block height")
 m_peers = Gauge("navio_peer_count", "Peer count")
 m_mempool = Gauge("navio_mempool_bytes", "Mempool size in bytes")
@@ -83,7 +92,10 @@ zmqpubhashblock=tcp://127.0.0.1:28333
 zmqpubrawtx=tcp://127.0.0.1:28334
 zmqpubhashtx=tcp://127.0.0.1:28335
 zmqpubsequence=tcp://127.0.0.1:28336
+zmqpubp2pmsg=tcp://127.0.0.1:28337   # stored p2pmsg user messages, topic "p2pmsg"
 ```
+
+For p2pmsg user messages there is also a command hook: `p2pmsgnotify=/path/to/script %s` runs once per stored message with the message id (fetch the content with `listp2pmsgs`). See [P2P encrypted messaging → User messaging](../concepts/p2p-messaging.md#user-messaging).
 
 Subscribe with any ZMQ client. Use cases:
 

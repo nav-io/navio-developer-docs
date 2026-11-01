@@ -10,8 +10,8 @@ The sender needs:
 -   **Amount** $v_{\text{amt}}$ (integer satoshis, 64-bit).
 -   Optional **memo** (UTF-8, typically ≤ 32 bytes).
 -   Optional **token id** (null for NAV, 32 bytes for fungible, 40 bytes for NFT).
--   Freshly sampled **blinding factor** $r \in \mathbb{F}_r$.
--   Freshly sampled **amount blinding factor** $\gamma \in \mathbb{F}_r$.
+-   A **blinding scalar** $r \in \mathbb{F}_r$ — derived from the wallet seed for wallet-built outputs (see [Recoverable blinding scalars](#recoverable-blinding-scalars)), otherwise random or caller-supplied.
+-   The **amount blinding factor** $\gamma$ is not an input: it is derived from the shared point (below).
 
 ## Derived values
 
@@ -20,9 +20,17 @@ From $r$ and the recipient DPK:
 -   **Ephemeral public key** $R = r \cdot g_1 \in G_1$. 48 bytes. Stored in the output as `blsctData.ephemeralKey`.
 -   **Shared point** $\eta = r \cdot V_r = v_r \cdot R$. This is the Diffie–Hellman point between sender and receiver; it is what drives the view-tag, the stealth-key tweak, and the range-proof message encoding.
 -   **View tag** $\tau = \text{SHA256}(\eta).\text{GetUint64}(0) \;\&\; \text{0xFFFF}$. **2 bytes** (uint16). See `CalculateViewTag` in `src/blsct/wallet/helpers.cpp`.
--   **Stealth spend pubkey** $S' = S_r + \text{H}_s(\eta, \text{salt}{=}0) \cdot g_1$, where $\text{H}_s$ is `MclG1Point::GetHashWithSalt`. Stored as `blsctData.spendingKey`. Spending requires the scalar $s' = s + m_{a,i} + \text{H}_s(\eta, 0)$ (see [Key derivation → per-output keys](keys.md#per-output-keys)).
+-   **Stealth spend pubkey** $S' = S_r + \text{H}_s(\eta, \text{salt}{=}0) \cdot g_1$, where $\text{H}_s$ is `BlstG1Point::GetHashWithSalt`. Stored as `blsctData.spendingKey`. Spending requires the scalar $s' = s + m_{a,i} + \text{H}_s(\eta, 0)$ (see [Key derivation → per-output keys](keys.md#per-output-keys)).
 -   **Blinding helper** $B = r \cdot S_r \in G_1$ (called `blindingKey` in `CTxOutBLSCTData`). This is an intermediate Diffie–Hellman point that lets the receiver compute the shared point $\eta$ with a single scalar multiplication: $v_r \cdot B = v_r \cdot r \cdot S_r = r \cdot V_r = \eta$. Storing $B$ (instead of only $R$) saves the receiver one point multiplication per output during scanning, at the cost of an extra $G_1$ element on the wire.
 -   **Amount blinding factor** $\gamma = \text{H}_s(\eta, \text{salt}{=}100)$ — *not* sampled freshly; it is deterministic from the shared point so the receiver can reconstruct the commitment opening without side-channel data. Computed at `txfactory_global.cpp:113` (`ret.gamma = nonce.GetHashWithSalt(100)`).
+
+### Recoverable blinding scalars
+
+Since **v0.2.2** the wallet derives each output's blinding scalar $r$ deterministically from its HD seed instead of drawing it at random. The derivation is keyed on the transaction's *anchor* (the lexicographically smallest output hash among the sender's own inputs — canonical, because `vin` is shuffled and block aggregation adds other senders' inputs), the output's ordinal, and a per-anchor **generation** counter the wallet persists (`blsctblindinggen`) and bumps whenever it rebuilds over the same inputs, so a rebuilt transaction never reuses a scalar. If the counter cannot be persisted the wallet falls back to a random, unrecoverable scalar.
+
+Because $R = r \cdot g_1$ is the key consensus already checks the output's signature against, the creator can later prove authorship of an output: `signblsctoutput "txid" vout "message"` re-derives $r$ (searching generations `0..31`) and returns a BLS signature over `sha256("navio-blsct-output-auth/v1" || message)` plus `blindingkey` ($R$). Verifiers recompute the digest and BLS-verify against $R$. The domain prefix keeps the RPC from signing a raw 32-byte value that could be an output hash. The scalar is never stored; the derivation is shared with navio-sdk and pinned by test vectors in `src/test/blsct/wallet/blinding_key_tests.cpp`.
+
+Limits: outputs created before v0.2.2, outputs built with an explicitly supplied blinding key, and aggregation cover candidates (deliberately) are not recoverable. Two wallets restored from the same seed share no generation counter, so do not spend the same inputs from both.
 
 ## The Pedersen commitment
 
@@ -67,10 +75,10 @@ CTxOut                              (primitives/transaction.h:228)
 └── predicate         blsct::VectorPredicate  (empty unless PREDICATE_MARKER set)
 
 CTxOutBLSCTData                     (primitives/transaction.h:156)
-├── spendingKey       MclG1Point    48 bytes  (S' — stealth spend pubkey)
-├── ephemeralKey      MclG1Point    48 bytes  (R = r · g_1 — the "ephemeral" Diffie–Hellman pubkey)
-├── blindingKey       MclG1Point    48 bytes  (B = r · S_{a,i} — DH pre-point; η = v·B is the shared point)
-├── rangeProof        bulletproofs_plus::RangeProof<Mcl>   (Bulletproofs+)
+├── spendingKey       BlstG1Point   48 bytes  (S' — stealth spend pubkey)
+├── ephemeralKey      BlstG1Point   48 bytes  (R = r · g_1 — the "ephemeral" Diffie–Hellman pubkey)
+├── blindingKey       BlstG1Point   48 bytes  (B = r · S_{a,i} — DH pre-point; η = v·B is the shared point)
+├── rangeProof        bulletproofs_plus::RangeProof<Blst>  (Bulletproofs+)
 └── viewTag           uint16_t      2 bytes   (τ; 16 bits, computed as `Hash(v·R) & 0xFFFF` — see `src/blsct/wallet/helpers.cpp:15`)
 ```
 

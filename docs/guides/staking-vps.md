@@ -35,7 +35,7 @@ sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/ssh
 ufw default deny incoming
 ufw default allow outgoing
 ufw allow 22/tcp
-ufw allow 33670/tcp comment 'Navio P2P'
+ufw allow 33670/tcp comment 'Navio P2P (testnet; mainnet: 48470)'
 ufw enable
 
 # swap (optional, 2 GB)
@@ -70,6 +70,7 @@ rpcuser=navio
 rpcpassword=$RPC_PW
 
 [test]
+# testnet has no built-in seeds; add peers explicitly
 addnode=testnet.nav.io
 addnode=testnet2.nav.io
 EOF
@@ -154,10 +155,10 @@ No stake-age minimum — once confirmed and in the staked commitment set, the co
 Navio does not ship a `getstakinginfo` RPC. Check that the staker is operating via:
 
 -   The `navio-staker` stdout — supervisor-captured logs show each template poll and submission attempt.
--   Periodic reward transactions in `listblscttransactions`:
+-   Periodic reward transactions in `listtransactions` (category `stake`):
 
 ```bash
-sudo -u navio navio-cli -testnet listblscttransactions "*" 50 0 true \
+sudo -u navio navio-cli -testnet listtransactions "*" 50 0 true \
     | jq '[.[] | select(.category=="stake")] | length'
 ```
 

@@ -7,7 +7,7 @@ Key-level classes above the raw curve primitives.
 Single BLS public key — a wrapper around `Point`.
 
 ```ts
-import { PublicKey, Scalar } from 'navio-blsct';
+import { PublicKey, Scalar } from '@nav-io/navio-blsct';
 
 const privScalar = Scalar.random();
 const pub = PublicKey.fromScalar(privScalar);
@@ -23,7 +23,7 @@ pub.verify(message, signature); // BLS verify
 A set of public keys used in aggregate verification. Holds multiple 48-byte pubkeys and supports batched operations.
 
 ```ts
-import { PublicKeys } from 'navio-blsct';
+import { PublicKeys } from '@nav-io/navio-blsct';
 
 const set = new PublicKeys([pubA, pubB, pubC]);
 
@@ -36,7 +36,7 @@ set.verifyAggregate(messages, aggregateSignature);
 The (view, spend) pair — 96 bytes total — defining a BLSCT address. See [the double public key deep dive](../blsct/double-public-key.md) for byte layout.
 
 ```ts
-import { DoublePublicKey } from 'navio-blsct';
+import { DoublePublicKey } from '@nav-io/navio-blsct';
 
 const dpk = DoublePublicKey.fromHex(hex192);
 const dpk2 = DoublePublicKey.fromParts(viewPub, spendPub);
@@ -59,7 +59,7 @@ const fromAddr = DoublePublicKey.fromBech32m('tnv1...', 'testnet');
 A derived sub-address wrapping a DPK and its `(account, index)` identifier.
 
 ```ts
-import { SubAddress, SubAddrId } from 'navio-blsct';
+import { SubAddress, SubAddrId } from '@nav-io/navio-blsct';
 
 const id = new SubAddrId(0, 0);                 // (account, index)
 const sa = SubAddress.derive(masterScalar, id);

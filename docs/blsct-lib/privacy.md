@@ -7,7 +7,7 @@ Bulletproofs-backed primitives and token metadata.
 Bulletproofs (or Bulletproofs++) range proof showing a committed amount is in $[0, 2^{64})$. See the [range proofs deep dive](../blsct/range-proofs.md).
 
 ```ts
-import { RangeProof, Scalar } from 'navio-blsct';
+import { RangeProof, Scalar } from '@nav-io/navio-blsct';
 
 // Build — typically done by higher-level tx construction, not manually
 const rp = RangeProof.prove({
@@ -32,7 +32,7 @@ Aggregated proofs over multiple outputs share most of the structure; use `RangeP
 Shared-secret-based amount decryption for incoming outputs. Usually wrapped by the SDK, but exposed for custom flows.
 
 ```ts
-import { AmountRecoveryReq, AmountRecoveryRes } from 'navio-blsct';
+import { AmountRecoveryReq, AmountRecoveryRes } from '@nav-io/navio-blsct';
 
 const req = new AmountRecoveryReq({
     blindingKey:    R,                 // Point — from output
@@ -51,7 +51,7 @@ Used internally during [output detection](../blsct/detection.md).
 On-wire identifier for a token or NFT. Wraps the 32-byte collection hash, optionally with an 8-byte NFT subid.
 
 ```ts
-import { TokenId } from 'navio-blsct';
+import { TokenId } from '@nav-io/navio-blsct';
 
 const collection = TokenId.fromCollectionHash(hashHex64);
 const nft = TokenId.fromCollectionAndSubid(hashHex64, 42n);
@@ -68,7 +68,7 @@ nft.isNft();            // true
 Collection metadata as broadcast via `createtoken` / `createnft`.
 
 ```ts
-import { TokenInfo } from 'navio-blsct';
+import { TokenInfo } from '@nav-io/navio-blsct';
 
 const info = new TokenInfo({
     metadata: { name: 'My Token', symbol: 'MT' },
@@ -86,7 +86,7 @@ info.toJSON();
 Lookup key mapping an on-chain output back to a sub-address. Computed as a hash over the output's blinding key and stealth spending key.
 
 ```ts
-import { HashId } from 'navio-blsct';
+import { HashId } from '@nav-io/navio-blsct';
 
 const h = HashId.compute({ blindingKey: R, spendingKey: SPrime });
 h.toHex();
@@ -99,7 +99,7 @@ Wallets maintain a `hashId → (account, index)` lookup to accelerate repeat sca
 Utility for the `{string → string}` metadata format used by tokens and NFTs. Canonicalises serialisation order so the chain's `H(metadata)` is stable.
 
 ```ts
-import { encodeStringMap, decodeStringMap } from 'navio-blsct';
+import { encodeStringMap, decodeStringMap } from '@nav-io/navio-blsct';
 
 const bytes = encodeStringMap({ name: 'X', rarity: 'rare' });
 const map = decodeStringMap(bytes);

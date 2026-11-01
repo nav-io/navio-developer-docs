@@ -105,6 +105,34 @@ async function creditDeposit(d: {
 }
 ```
 
+## Node-side audit wallet with `navio-cli`
+
+The same watch-only wallet can live in `naviod` instead of the SDK.
+
+```bash
+# 1. on the wallet holding the spend key
+navio-cli -rpcwallet=main getblsctauditkey          # 160-hex audit key
+
+# 2. on the monitor node: a 160-hex seed is treated as an audit key,
+#    and disable_private_keys is set automatically
+navio-cli -named createwallet wallet_name="audit" seed="<160-hex audit key>"
+
+# 3. scan history (an audit-key wallet has no birthday, so pass a start height)
+navio-cli -rpcwallet=audit rescanblockchain 50000
+
+# 4. watch deposits
+navio-cli -rpcwallet=audit listtransactions "*" 100
+navio-cli -rpcwallet=audit getblsctbalance
+```
+
+What to expect:
+
+-   **Invalid keys are refused up front** (master, after v0.2.2): an audit key whose view-key half is zero or out of range, or whose spend-key half is not a valid point, fails with `Invalid audit key: the view key or the spend key is not a valid key` (`RPC_INVALID_PARAMETER`) and no wallet file is left behind. Earlier releases accepted such keys and then watched the wrong sub-addresses.
+-   **The wallet is keyless.** It holds only the audit key. `getblsctseed` fails with `RPC_WALLET_BLANK` (-37), `dumpmnemonic` with `RPC_WALLET_ERROR` (-4), `signblsctrawtransaction` is refused, and `createwallet` refuses a `passphrase` because there are no private keys to encrypt.
+-   **`disable_private_keys=true` without an audit key** creates a wallet that holds no keys at all (master). Earlier releases generated a random private seed for it, which still loads but warns "Private keys detected in wallet … with disabled private keys". On such a keyless wallet `getblsctauditkey` fails with `RPC_WALLET_BLANK` (-37).
+-   **Exchange key handling.** Export the audit key from the spend wallet and import it here; do not pass the master seed or mnemonic together with `disable_private_keys=true`, which `createwallet` refuses on master.
+-   `getblsctbalance`, `gettokenbalance` and `getnftbalance` include watch-only outputs by default on a watch-only wallet.
+
 ## Addresses the audit wallet can see
 
 The audit key lets the monitor derive every sub-address *up to the current sub-address pool size*. If the main wallet generates address #1000 on `account=0`, the audit wallet must have a pool of ≥ 1000 to detect outputs to it.

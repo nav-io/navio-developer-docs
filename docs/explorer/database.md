@@ -14,6 +14,9 @@ SQLite in WAL mode. File defaults to `./navio-blocks.db`.
 | `price_history`     | `(ts, source)`     | NAV price over time (MEXC + others)                    |
 | `block_supply`      | `height`           | Per-block reward, burned fees, cumulative supply      |
 | `sync_state`        | singleton          | Indexer progress tracking                             |
+| `node_stats`        | `(network, timestamp)` | Node-count snapshot after each peer crawl: `total`, `listening`, `active` |
+| `staking_stats`     | `(network, timestamp)` | 5-minute snapshot of the node's staked set (`liststakedcommitmentsdata`) next to the index's own counts, for drift detection |
+| `p2pmsg_stats`      | `(network, timestamp)` | 1-minute p2pmsg overlay snapshot: relay-capable / total peers, aggregation pool, order and RFQ counts |
 
 ## Indexes
 
@@ -38,7 +41,9 @@ SQLite in WAL mode. File defaults to `./navio-blocks.db`.
 
 ### `outputs`
 
-`output_hash` (PK), `txid`, `vout`, `value` (nullable — null for BLSCT), `scriptPubKey` (hex), `address` (nullable), `token_id` (nullable), `blsct_blinding_key` (nullable), `blsct_view_tag` (nullable), `blsct_spending_key` (nullable), `is_spent` (bool), `spent_by_txid` (nullable), `spent_at_height` (nullable).
+`output_hash` (PK), `txid`, `vout`, `value` (nullable — null for BLSCT), `scriptPubKey` (hex), `address` (nullable), `token_id` (nullable), `blsct_blinding_key` (nullable), `blsct_view_tag` (nullable), `blsct_spending_key` (nullable), `is_spent` (bool), `spent_by_txid` (nullable), `spent_at_height` (nullable), `output_type`, `delegated` (bool — a staked commitment carrying a cold-staking delegation payload).
+
+Since September 2026 the indexer classifies a staked commitment that carries a DATA predicate as a delegated stake rather than an unspendable fee output; a startup migration re-files previously mis-classified rows and sets `delegated`.
 
 ### `inputs`
 

@@ -4,13 +4,13 @@ Navio uses BLS12-381 signatures for every authentication step in a BLSCT transac
 
 ## Ciphersuite
 
-Navio follows the IETF `draft-irtf-cfrg-bls-signature` **`min_pk`** variant (Ethereum 2.0 / `BLS_ETH` mode in mcl):
+Navio follows the IETF `draft-irtf-cfrg-bls-signature` **`min_pk`** variant (Ethereum 2.0 ciphersuite, implemented on vendored supranational/blst):
 
 -   Public keys in $G_1$ (**48 bytes** compressed).
 -   Signatures in $G_2$ (**96 bytes** compressed).
 -   Hash-to-curve $H : \{0,1\}^* \to G_2$ with DST `BLS_SIG_BLS12381G2_XMD:SHA-256_SSWU_RO_POP_`.
 
-`#define BLS_ETH 1` appears at the top of `src/blsct/signature.h` and `src/blsct/arith/mcl/mcl_init.h`. The `Signature` class wraps `mclBnG2`; verification routes through `blsVerify` in the vendored BLS library.
+The `Signature` class (`src/blsct/signature.{h,cpp}`) wraps a blst `G2` point; signing and verification hash to $G_2$ with the DST above (`BLS_SIG_G2_DST`) through blst. Before v0.2.0 the same ciphersuite ran on herumi/mcl in `BLS_ETH` mode; signatures are byte-compatible.
 
 ## Basic BLS signing
 
@@ -99,5 +99,5 @@ A node verifying a block batches all aggregate signatures across all transaction
 
 -   BLS signatures are **not** rogue-key-attack resistant by themselves when aggregating across adversarial pubkey sets. Per-input, per-output, script, and token signatures use the **message-augmentation** mitigation — each message is prefixed with the signing pubkey, making rogue-key attacks infeasible on those paths.
 -   The **balance signature** does *not* use message augmentation (it signs the constant `BLSCTBALANCE`). Its rogue-key resistance comes instead from the construction: the "pubkey" is the unique residual $r \cdot H$ from the commitment balance equation, so a forger would have to break the discrete log of $H$.
--   **Subgroup checks** on incoming signatures are mandatory to reject malleable signatures that land outside the $r$-order subgroup. Beyond the mcl deserialiser under `mclBn_setETHserialization(1)`, Navio adds an explicit guard in `Signature::SetVch` (`src/blsct/signature.cpp`, navio-core #282): every deserialized $G_2$ point is run through `mclBnG2_isValidOrder` and rejected unless it lies in the $r$-order subgroup. This matters because BLS12-381 $G_2$ has a large cofactor, so a point can satisfy the curve equation yet still carry a small-order component — opening the door to signature malleability/forgery. The verification path (`blsAggregateVerifyNoCheck`) skips the order check by design, so the `SetVch` guard is the defence at the deserialization layer.
+-   **Subgroup checks** on incoming signatures are mandatory to reject malleable signatures that land outside the $r$-order subgroup. `Signature::SetVch` (`src/blsct/signature.cpp`) decompresses with `blst_p2_uncompress` (encoding and curve equation) and then rejects any non-identity point that fails `blst_p2_affine_in_g2`. This matters because BLS12-381 $G_2$ has a large cofactor, so a point can satisfy the curve equation yet still carry a small-order component — opening the door to signature malleability. The check runs at deserialization, so every signature that reaches verification is already in the $r$-order subgroup.
 -   **Proof of possession** is required when adding a new aggregator key to a multi-party flow (relevant for advanced use; not used in plain single-user BLSCT transactions).

@@ -30,11 +30,11 @@ This knowledge base documents the entire Navio surface — protocol, node operat
 
 -   :material-language-typescript: **[SDK — navio-sdk](sdk/index.md)**
 
-    TypeScript SDK for wallet management, sync, and transaction construction. Runs in Node.js and browsers.
+    TypeScript SDK for wallet management, sync, transaction construction, staking and RFQ trading. Runs in Node.js and browsers. Plus `navio-p2pmsg`, a standalone client for the encrypted messaging bus.
 
 -   :material-key-chain-variant: **[libblsct-bindings](blsct-lib/index.md)**
 
-    Multi-language bindings for `libblsct` — TypeScript (native + WASM) and Python shipping; C, Rust, Go planned. Curve primitives, keys, range proofs, CTx.
+    Multi-language bindings for `libblsct` — TypeScript (native + WASM) and Python packages, C# and Rust from source; C and Go planned. Curve primitives, keys, range proofs, CTx, stake delegation.
 
 -   :material-magnify-scan: **[Block Explorer — navio-blocks](explorer/index.md)**
 
@@ -63,8 +63,12 @@ This knowledge base documents the entire Navio surface — protocol, node operat
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [`nav-io/navio-core`](https://github.com/nav-io/navio-core)            | `naviod`, `navio-cli`, `navio-staker`, `navio-wallet` — the reference C++ implementation. |
 | [`nav-io/navio-sdk`](https://github.com/nav-io/navio-sdk)              | TypeScript SDK for wallets, sync, and transactions.                    |
-| [`nav-io/libblsct-bindings`](https://github.com/nav-io/libblsct-bindings) | Multi-language bindings for `libblsct` — TypeScript (native + WASM), Python. C/Rust/Go planned. |
+| [`nav-io/libblsct-bindings`](https://github.com/nav-io/libblsct-bindings) | Multi-language bindings for `libblsct` — TypeScript (native + WASM), Python, C#, Rust. C/Go planned. |
+| [`nav-io/navio-p2pmsg`](https://github.com/nav-io/navio-p2pmsg)        | Standalone TypeScript client for the p2pmsg encrypted messaging bus.   |
 | [`nav-io/navio-blocks`](https://github.com/nav-io/navio-blocks)        | Block explorer (indexer + API + frontend).                             |
+| [`nav-io/electrumx`](https://github.com/nav-io/electrumx)              | ElectrumX fork with BLSCT methods and the RFQ bridge.                  |
+| [`nav-io/navio-electrum`](https://github.com/nav-io/navio-electrum)    | Navio Electrum desktop / Android light wallet.                         |
+| [`nav-io/navio-docker`](https://github.com/nav-io/navio-docker)        | Docker images of the official `naviod` release binaries (plain, Tor, I2P). |
 | [`nav-io/navio-developer-docs`](https://github.com/nav-io/navio-developer-docs) | This site. Contributions welcome via PR.                               |
 
 ---

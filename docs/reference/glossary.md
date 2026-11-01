@@ -14,7 +14,7 @@
 
 **Bulletproofs** / **Bulletproofs++** — Compact range proof construction used to prove each hidden amount is in $[0, 2^{64})$. See [range proofs](../blsct/range-proofs.md).
 
-**Coinstake** — Special transaction at `vtx[1]` in a PoS/PoPS block, with a zero-value nonstandard marker as its first output and the block reward in subsequent BLSCT outputs. See [block format](../blsct/block.md).
+**Coinstake** — Legacy PoS term. PoPS blocks have no coinstake transaction: the reward is paid by the coinbase and eligibility is proven by `block.posProof`. See [block format](../blsct/block.md).
 
 **Double public key (DPK)** — The 96-byte bundle of a sub-address's view and spend pubkeys. bech32m-encoded to form a user-facing address.
 
@@ -36,13 +36,13 @@
 
 **navio-sdk** — High-level TypeScript SDK wrapping navio-blsct plus wallet, sync, and transaction construction. See [sdk](../sdk/index.md).
 
-**navio-staker** — Standalone process that produces coinstake transactions for a wallet with locked stake.
+**navio-staker** — Standalone process that builds PoPS proofs and submits blocks for a wallet's locked stake, or for third-party delegations in `-delegated` (cold-staking operator) mode. See [staking](../node/staking.md).
 
 **NFT** — Non-fungible token. On Navio, an 80-hex token id = 64-hex collection + 16-hex subid. Confidential except for the cleartext token id. See [tokens format](../blsct/tokens.md).
 
 **Outpoint** — Reference to a specific output. Navio uses a single 32-byte `output_hash` instead of Bitcoin's `(txid, vout)` pair. See [outpoint model](../concepts/outpoint.md).
 
-**Output hash** — 32-byte canonical identifier of a BLSCT output, computed from the output's contents. Stable across chain re-serialisation.
+**Output hash** / **output id (outid)** — 32-byte canonical identifier of an output: `CTxOut::GetHash()`, the double-SHA256 of the serialized output. A `COutPoint` is exactly this value. Not a txid. See [outpoint model](../concepts/outpoint.md).
 
 **Pedersen commitment** — `C = v·H + γ·G` — hides the amount `v` with the blinding factor `γ`. Binding and hiding. See [BLSCT privacy model](../concepts/blsct-model.md#hidden-amounts-pedersen-commitments).
 
@@ -80,7 +80,7 @@
 
 **Token id** — See above. `tokenId` in wire format / RPC is either 64 hex (collection) or 80 hex (collection + nft_id for NFTs).
 
-**Transaction aggregation** — Combining multiple independently-signed BLSCT transactions into one via BLS signature summation. Enables trustless non-interactive swaps, fee sponsorship, CoinJoin-style coordination. See [atomic swaps](../concepts/atomic-swaps.md#intra-chain-aggregated-swaps).
+**Transaction aggregation** — Combining multiple independently-signed BLSCT transactions into one via BLS signature summation. Enables trustless non-interactive swaps, fee sponsorship, CoinJoin-style coordination. See [atomic swaps](../concepts/atomic-swaps.md#intra-chain-aggregated-swaps). Block producers also merge all of a block's user transactions into one aggregate (no cut-through); see *Confirmation by containment*.
 
 **Transaction keys** — Per-block batch of `(output_hash, ephemeral key, view tag)` tuples, served by nodes / Electrum for efficient wallet sync. See [output detection](../blsct/detection.md).
 
@@ -89,3 +89,27 @@
 **View tag $\tau$** — 2-byte hint stored on each output, derived from the shared secret. Lets wallets discard almost all outputs after a single cheap hash check during sync.
 
 **Amount recovery** — BLSCT outputs do not carry a separate ciphertext blob for the amount. The receiver recovers the amount and memo from the Bulletproofs+ proof using the shared nonce and the proof scalars. See [amount recovery](../blsct/amount-recovery.md).
+
+**Aggregate (block)** — The single transaction at `vtx[1]` of a BLSCT block that merges every user transaction the block producer selected. See [block format](../blsct/block.md#block-body).
+
+**Archive (p2pmsg)** — Opt-in node role (`-p2pmsgarchive`, `NODE_P2PMSG_ARCHIVE`) that stores flagged p2pmsg envelopes it relays and serves them to offline peers via `getp2pmsgs`. See [P2P encrypted messaging](../concepts/p2p-messaging.md#offline-retrieval-detection-flags-and-the-archive).
+
+**BIP324 / v2 transport** — Encrypted P2P transport, enabled with `-v2transport=1` (off by default) and advertised as `NODE_P2P_V2`.
+
+**`cmpctaggblk`** — Compact-block message for aggregated BLSCT blocks, carrying short ids of the aggregate's component transactions; negotiated with `sendcmpct` version 3. See [P2P protocol](../concepts/p2p-protocol.md#compact-blocks-version-3).
+
+**Confirmation by containment** — A mempool or wallet transaction counts as confirmed when a block spends all its inputs and creates all its non-fee outputs, even though its txid is not in the block (it was merged into the block's aggregate).
+
+**Cover candidate** — A fee-0, 1-input/1-output self-spend a node serves over p2pmsg so other wallets can merge it into their sends as decoy traffic (`-servecandidates`, `-aggregatesends`).
+
+**Fuzzy message detection (FMD)** — Scheme letting a p2pmsg recipient retrieve its messages from an archive with a tunable false-positive rate, without a recipient field on the wire. Uses a clue key, an 83-byte flag per envelope and a secret detection key.
+
+**Leaf (p2pmsg)** — A client advertising `NODE_P2PMSG_LEAF`: it receives fluff traffic but never relays, so it is never chosen as a Dandelion++ stem hop.
+
+**`MSG_OUTPUT_HASH`** — Inventory type 8: `getdata` for the transaction that created a given output id.
+
+**`outkeys`** — Per-block light-wallet scanning data (output hash, blinding key, spending key, view tag, spent output hashes) served in reply to `getoutkeys` by nodes with `-peeroutkeys` (`NODE_OUTKEYS`). See [P2P protocol](../concepts/p2p-protocol.md#light-wallet-output-keys-getoutkeys-outkeys).
+
+**Output padding** — Wallet default (`-blsctpadoutputs=1`) that gives every ordinary send a change output, zero-value if necessary, so all sends have the same output count.
+
+**`wsendpoint`** — Message a node with a usable WebSocket listener (`NODE_P2P_WS`) sends after the handshake, carrying the listener's port and, behind a proxy, its public URL.

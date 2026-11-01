@@ -12,7 +12,7 @@ $$
 \eta \;=\; r \cdot V_{a,i} \;=\; v \cdot R \;=\; v \cdot r \cdot g_1.
 $$
 
-The sender has $r$ and $V_{a,i}$; the receiver has $v$ and $R$. Both compute the same $\eta$. In code, `CalculateNonce(blindingKey, viewKey)` returns `blindingKey * viewKey` as a `MclG1Point` (`src/blsct/wallet/helpers.cpp`). All subsequent "sub-nonces" are derived deterministically via `\eta.\text{GetHashWithSalt}(\text{salt})`:
+The sender has $r$ and $V_{a,i}$; the receiver has $v$ and $R$. Both compute the same $\eta$. In code, `CalculateNonce(blindingKey, viewKey)` returns `blindingKey * viewKey` as a `BlstG1Point` (`src/blsct/wallet/helpers.cpp`). All subsequent "sub-nonces" are derived deterministically via `\eta.\text{GetHashWithSalt}(\text{salt})`:
 
 | Salt | Role in the range proof                                                  |
 | ---- | ------------------------------------------------------------------------ |

@@ -30,12 +30,14 @@ FILES = [
     "src/wallet/rpc/backup.cpp",
 ]
 BLSCT_KEYWORDS = ("blsct", "token", "nft", "stake", "mnemonic", "blsmessage")
-EXPLICIT = {"getblsctseed", "getblsctauditkey", "dumpmnemonic", "importblsctscript"}
+EXPLICIT = {"getblsctseed", "getblsctauditkey", "dumpmnemonic", "importblsctscript",
+            "consolidate", "listdelegations", "compounddelegations", "liststakingrewards",
+            "getbalanceforaddress"}
 # Names on the p2pmsg/aggregation/RFQ surface (matched as substrings of the
 # lowercase command name) for --p2pmsg mode.
 P2PMSG_KEYWORDS = (
     "p2pmsg", "p2pping", "candidate", "aggregat", "quote", "rfq", "swapintent",
-    "sendorder", "listorders",
+    "sendorder", "listorders", "broadcastorder",
 )
 
 

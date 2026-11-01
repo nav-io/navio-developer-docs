@@ -65,7 +65,7 @@ The genesis coinbase is a **plain unspendable `OP_RETURN`**, *not* a BLSCT outpu
     - `COINBASE_MATURITY = 100`, so the block-1 coinbase matures at tip height **101**.
     - **PoS begins at height 111.** The headroom exists because the PoPS ring needs **≥ 2 commitments**, and each wallet's stakelocks collapse to a single commitment — so the founder must fund and lock stakes from **at least two wallets** before height 111.
 
-**Mainnet seeds:** DNS seed `seed.nav.io`; hardcoded fixed bootstrap seed `blocks.nav.io` (`168.119.249.67:48470`).
+**Mainnet seeds:** DNS seed `seed.nav.io`; hardcoded fixed bootstrap seed `blocks.nav.io` (`168.119.249.67:48470`). Testnet has no built-in seeds — see [Networks → Bootstrap nodes](networks.md#bootstrap-nodes).
 
 ### Testnet
 
@@ -74,12 +74,12 @@ The genesis coinbase is a **plain unspendable `OP_RETURN`**, *not* a BLSCT outpu
 | BLSCT enabled         | Yes                                                                           |
 | Bootstrap PoW phase   | Heights `1..1000` (`nLastPOWHeight = 1000`)                                   |
 | Height-1 reward       | **75,000,000 NAV** (`nBLSCTFirstBlockReward`)                                 |
-| Steady-state PoPS reward | **4 NAV** (`nBLSCTBlockReward`)                                            |
-| Target block time     | **60 s**                                                                      |
+| Steady-state PoPS reward | **8 NAV** (`nBLSCTBlockReward = 2 * COIN * (nPosTargetSpacing / 30)`)      |
+| Target block time     | **120 s**                                                                     |
 | Retarget window       | **1800 s**                                                                    |
 | Minimum stake         | 10,000 NAV                                                                   |
-| `posLimit`            | `0x0000ffffffffffff…` (easier — faster retarget, smaller set of active stakers) |
-| PoPS hardening        | Disabled (`fPoPSHardened = false`) to preserve historical testnet validity    |
+| `posLimit`            | `0x0000ffffffffffff…`                                                         |
+| PoPS hardening        | Enabled (`fPoPSHardened = true`); V2 kernel (binds the set-membership image) from height `22000` (`nPoPSKernelV2Height`) |
 
 ### Signet / Regtest / BLSCT Regtest
 
@@ -148,6 +148,8 @@ This is the local check that makes BLSCT's basic-scheme balance signature safe a
 
 `AggregateTransactions` (in [`src/blsct/wallet/txfactory_global.cpp`](https://github.com/nav-io/navio-core/blob/master/src/blsct/wallet/txfactory_global.cpp)) collapses several signed BLSCT transactions into one. The merged fee is $\sum_i F_i$ and the merged weight is $\sum_i W_i - \text{header overlap}$, so the merged transaction satisfies the minimum with strictly more margin than any constituent. No special handling needed.
 
+The same function is used by the block assembler: on BLSCT chains every block with more than one user transaction is `[coinbase, aggregate]`, the aggregate merging all of the template's transactions (inputs and outputs concatenated in order, fee outputs folded into one, no cut-through). Nodes treat the merged transactions as **confirmed by containment** rather than conflicted — see [P2P protocol → Aggregated blocks](p2p-protocol.md#aggregated-blocks).
+
 #### Coinbase / reward exemption
 
 Coinbase / coinstake reward transactions (`tx.IsCoinBase()` or `blockReward > 0` in the verification path) carry no `PayFeePredicate` output and are funded by the block subsidy plus the burned fees of the block. They use a separate consensus path (the coinbase value check in `ConnectBlock`) and are exempt from the BLSCT minimum-fee rule.
@@ -156,13 +158,13 @@ Coinbase / coinstake reward transactions (`tx.IsCoinBase()` or `blockReward > 0`
 
 Fees are burned, not paid to the validator. That interacts with each network's steady-state reward differently:
 
--   **Block reward (minted):** `8 NAV` on mainnet PoPS blocks, `4 NAV` on testnet / `blsctregtest`.
--   **Full-block fees (burned):** `4_194_304 bytes * 125 sat/byte ≈ 5.24 NAV` at max block size (4 MB).
+-   **Block reward (minted):** `8 NAV` on mainnet and testnet PoPS blocks, `4 NAV` on `blsctregtest`.
+-   **Full-block fees (burned):** `4,000,000 bytes * 125 sat/byte = 5.00 NAV` at the maximum serialized block size (`MAX_BLOCK_SERIALIZED_SIZE = 4,000,000`).
 
 At sustained full blocks:
 
--   **Mainnet** remains net inflationary by about `8.00 − 5.24 = 2.76 NAV` per full PoPS block.
--   **Testnet / blsctregtest** become net deflationary by about `4.00 − 5.24 = −1.24 NAV` per full block.
+-   **Mainnet / testnet** remain net inflationary by about `8.00 − 5.00 = 3.00 NAV` per full PoPS block.
+-   **blsctregtest** becomes net deflationary by about `4.00 − 5.00 = −1.00 NAV` per full block.
 
 ## Supply invariants
 

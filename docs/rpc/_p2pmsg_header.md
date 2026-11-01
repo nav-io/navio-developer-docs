@@ -15,11 +15,18 @@ See the [p2p encrypted messaging concept page](../concepts/p2p-messaging.md) for
 
 | Category | Commands |
 | -------- | -------- |
-| **Node state** | `getp2pmsginfo`, `rotatep2pmsginbox`, `sendp2pping` |
+| **Node state** | `getp2pmsginfo`, `rotatep2pmsginbox`, `getp2pmsgdetectionkey`, `sendp2pping` |
+| **User messaging** | `sendp2pmsg`, `mintp2pmsgreplykey`, `subscribep2pmsgtopic`, `unsubscribep2pmsgtopic`, `listp2pmsgtopics`, `listp2pmsgs`, `clearp2pmsgs` |
 | **Aggregation (cover traffic)** | `aggregatesend`, `getaggregationhint`, `getp2pmsgaggregate`, `listpendingcandidaterequests`, `replycandidate`, `sendcandidate`, `addaggregationcandidate` |
 | **RFQ swaps — taker** | `requestquote`, `listquotes`, `acceptquote`, `acceptquotewallet`, `listrfqs`, `cancelrfq` |
 | **RFQ swaps — maker** | `setswapintent`, `clearswapintent`, `listswapintents`, `listpendingquoterequests`, `sendquote`, `replyquote`, `addrfqquote` |
-| **Standing orders** | `sendorder`, `listorders` |
+| **Standing orders** | `broadcastorder`, `sendorder`, `listorders` |
+
+!!! note "Token arguments and NFTs"
+    Every token argument of `setswapintent`, `requestquote`, `sendquote`, `sendorder` and `broadcastorder` takes the 64-hex token id, the token id followed by `#<subid>` for an NFT (the form `listorders` prints), or the empty string for NAV. The subid is plain decimal (no sign, leading zeros or `0x`). A malformed value fails with `RPC_INVALID_PARAMETER` and a message naming the argument, e.g. `buy_token must be a 64-hex token id, followed by #<subid> for an NFT, or empty for NAV`. `listswapintents` and `listpendingquoterequests` print the `#<subid>` suffix for NFTs.
+
+!!! note "Message store cursors"
+    When the user-message store is enabled (`-p2pmsgstoresize` above 0), `getp2pmsginfo` returns a `store` object with `entries`, `bytes`, `last_id` and `undecodable`. `undecodable` counts messages on disk that this node cannot read; they are not returned by `listp2pmsgs` and not counted in `entries` or `bytes`. `clearp2pmsgs` returns the number of messages it removed, including undecodable ones in its range, so it can be larger than what `listp2pmsgs` showed. To drop only what you have read, pass the highest id `listp2pmsgs` returned. `0`, the default, drops everything.
 
 ---
 

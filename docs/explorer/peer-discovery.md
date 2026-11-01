@@ -54,6 +54,34 @@ The peers table stores `latitude`, `longitude`, `country`, `city`, `isp` — sen
 
 `P2P_MAINNET_MAGIC_HEX` (default `bd5fc300`) and `P2P_TESTNET_MAGIC_HEX` (default `2467d2c1`). The magic bytes open every P2P message; sending the wrong magic results in the peer ignoring or banning us. Override with `P2P_MESSAGE_MAGIC_HEX` if a cut of testnet changes magic.
 
+### Handshake refresh
+
+A peer's record is refreshed by the explorer's own `version` handshake, not only by `addr` gossip:
+
+-   Peers marked reachable by the TCP probe get a handshake while their user agent is unknown, and the crawl spends its handshake budget on the most recently seen addresses first.
+-   A known user agent is never blanked by a later gossip-only sighting.
+-   Service bits from a handshake are authoritative. Bits learned only from gossip (no `proto=` tag) trigger a fresh handshake for reachable peers, so a node that turns on a service (for example `-p2pmsgarchive` or `-v2transport`) shows its new badges after the next crawl instead of waiting for gossip to spread.
+-   Gossip entries older than the 7-day retention window are dropped before geolocation, and `/api/nodes`, `/api/nodes/map` and the node-count snapshot all count only peers seen within the same 7 days, so the Total Nodes card and the history chart agree.
+
+## Service bits {#service-bits}
+
+`/api/nodes` decodes each peer's advertised services into `service_flags`, whether they came from `getpeerinfo` names, `UNKNOWN[2^n]` entries from an older node, or a raw bitmask from the crawl. The Network page shows a **Navio Service Bits** distribution card and a **Navio Services** badge column (union per /24 group):
+
+| Bit | Flag                  | Badge meaning                                                |
+| --- | --------------------- | ------------------------------------------------------------ |
+| 11  | `NODE_P2P_V2`         | BIP324 encrypted transport                                   |
+| 24  | `NODE_P2PMSG`         | p2pmsg relay, envelope v1 (legacy)                           |
+| 25  | `NODE_P2PMSG_LEAF`    | p2pmsg leaf (client that should not be used as a stem hop)   |
+| 26  | `NODE_P2PMSG_ARCHIVE` | Archives flagged p2pmsg envelopes for offline retrieval      |
+| 27  | `NODE_P2PMSG_V2`      | p2pmsg relay, envelope v2                                    |
+| 30  | `NODE_P2P_WS`         | WebSocket P2P listener; shown as `ws :port` / `wss :443` with the dialable URL on hover |
+
+The WebSocket endpoint is captured from the node's `wsendpoint` announcement during the crawl, or from `ws_port` / `ws_url` in `getpeerinfo`, and exposed per peer as `ws_endpoint`. See [P2P encrypted messaging](../concepts/p2p-messaging.md) for the p2pmsg roles.
+
+## Node counts
+
+After every crawl the indexer stores a snapshot in `node_stats`, deduplicated per IP with the same rules as `/api/nodes`: **total** known nodes, **listening** (reachable) nodes, and **active** nodes (listening or handshaken within the last 3 hours). `/api/nodes/history` buckets the snapshots and the Network page charts all three series.
+
 ## Bootstrap seeds
 
 Initial candidate set for the crawl. Testnet default:

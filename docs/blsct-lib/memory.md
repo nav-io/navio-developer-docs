@@ -24,7 +24,7 @@ The WASM heap does **not** integrate with the browser's JS GC. Every managed obj
 **For long-running browser wallets:**
 
 ```ts
-import { Scalar } from 'navio-blsct';
+import { Scalar } from '@nav-io/navio-blsct';
 
 const s = Scalar.random();
 // ... use s ...

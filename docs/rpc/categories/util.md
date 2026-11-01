@@ -5,7 +5,7 @@
 | `validateaddress <address>`    | Check whether an address is well-formed, return details           |
 | `estimatesmartfee <blocks>`    | Fee rate estimate targeting confirmation within `blocks`          |
 | `estimaterawfee <blocks>`      | Low-level fee estimator output                                    |
-| `createmultisig`               | Build an m-of-n multisig descriptor                                |
+| `createmultisig`               | Build an m-of-n transparent multisig address and descriptor. The `blsct` and `blsct-stake` address types are refused |
 | `getdescriptorinfo`            | Inspect a wallet descriptor                                       |
 | `deriveaddresses`              | Derive addresses from a descriptor                                 |
 | `signmessagewithprivkey`       | Sign a message using a raw privkey (legacy, non-BLSCT)            |

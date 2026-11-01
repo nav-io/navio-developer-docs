@@ -17,38 +17,50 @@ interface NavioClientConfig {
     // Required
     walletDbPath: string;
 
-    // Database adapter (auto-detected if omitted)
-    databaseAdapter?: 'indexeddb' | 'browser' | 'better-sqlite3' | 'memory';
+    // Database adapter (auto-detected if omitted:
+    // IndexedDB in browsers, better-sqlite3 in Node.js)
+    databaseAdapter?: 'indexeddb' | 'browser' | 'better-sqlite3' | 'capacitor' | 'expo';
 
     // Backend
-    backend?: 'electrum' | 'p2p';
+    backend?: 'electrum' | 'p2p';          // default 'electrum'
     electrum?: {
-        host?: string;       // default 'localhost'
-        port?: number;       // default 50001
-        ssl?: boolean;       // default false
-        timeout?: number;    // default 30000
-        clientName?: string;
-        clientVersion?: string;
+        host?: string;           // default 'localhost'
+        port?: number;           // default 50001
+        ssl?: boolean;           // default false
+        timeout?: number;        // default 30000
+        p2pmsgTimeout?: number;  // RFQ / quote / order broadcasts, default 180000
+        clientName?: string;     // default 'navio-sdk'
+        clientVersion?: string;  // default '1.4'
     };
     p2p?: {
         host: string;
-        port: number;                         // mainnet 48470, testnet 43670
-        network: 'mainnet' | 'testnet';
+        port?: number;           // default by network: mainnet 48470, testnet 33670, regtest 18444
+        network?: 'mainnet' | 'testnet' | 'regtest';  // default: follows `network`
+        timeout?: number;        // request + connect/handshake timeout
+        userAgent?: string;
+        services?: bigint;       // default NODE_NONE
         debug?: boolean;
+        maxHeadersPerRequest?: number;
     };
 
     // Network
-    network?: 'mainnet' | 'testnet' | 'signet' | 'regtest';
+    network?: 'mainnet' | 'testnet' | 'signet' | 'regtest';   // default 'mainnet'
 
     // Wallet creation / restore
     createWalletIfNotExists?: boolean;
     restoreFromSeed?: string;              // 64-hex master seed
-    restoreFromMnemonic?: string;          // BIP-39 12 or 24 words
+    restoreFromMnemonic?: string;          // 24 BIP-39 words, or a 26-word birthday mnemonic
     restoreFromAuditKey?: string;          // 160-hex audit key
-    restoreFromHeight?: number;            // required with any restoreFrom*
+    restoreFromHeight?: number;            // default 0; derived from a birthday mnemonic
     creationHeight?: number;               // default chainTip - 100
+
+    // Outputs and staking
+    deterministicBlindingKeys?: boolean;   // default true — see Sending → Output authorship
+    minStakeAmount?: bigint;               // override the network's minimum stake
 }
 ```
+
+`minStakeAmount` is only needed on a chain whose minimum stake differs from the network default, such as navio-core's `blsctregtest`. See [Staking](staking.md).
 
 ## Lifecycle
 
@@ -88,7 +100,7 @@ client.getBackendType();      // 'electrum' | 'p2p'
 client.getNetwork();          // 'mainnet' | 'testnet' | ...
 client.getConfig();           // the passed-in config
 client.isConnected();         // backend status
-client.isUsingSubscriptions();// Electrum subscribes; P2P polls
+client.isUsingSubscriptions();// header subscriptions vs polling
 ```
 
 ## Sync
@@ -119,6 +131,8 @@ await client.getTokenOutputs(tokenId);
 await client.getAssetBalances();
 await client.getTokenBalances();
 await client.getNftBalances();
+await client.getStakedOutputs();
+await client.getStakedBalance();
 ```
 
 ## Sending
@@ -127,10 +141,26 @@ See [Sending](sending.md):
 
 ```ts
 await client.sendTransaction(opts);
+await client.sendToMany(opts);
 await client.sendToken(opts);
 await client.sendNft(opts);
 await client.broadcastRawTransaction(rawHex);
 const combined = client.aggregateTransactions([hexA, hexB]);
+
+// Output authorship (0.2.0+)
+await client.recoverBlindingKey({ txid, vout });
+await client.signOutput({ txid, vout, message });
+```
+
+## Staking
+
+See [Staking](staking.md) (0.4.0+):
+
+```ts
+await client.delegateStake(opts);
+await client.unstake(opts);
+await client.getStakeDelegations();
+client.getMinStakeAmount();
 ```
 
 ## Tokens and NFTs
@@ -142,7 +172,13 @@ await client.createTokenCollection(opts);
 await client.createNftCollection(opts);
 await client.mintToken(opts);
 await client.mintNft(opts);
+await client.mintNfts(opts);
+await client.listCreatedCollections();
 ```
+
+## Trading
+
+See [Token trading](trading.md): `requestQuote`, `listQuotes`, `acceptQuote`, `cancelQuoteRequest`, `setSwapIntent`, `clearSwapIntent`, `listSwapIntents`, `subscribePendingQuoteRequests`, `replyQuote`, `broadcastOrder`, `listStandingOrders`, `forgetStandingOrder`.
 
 ## Chain metadata
 
@@ -161,3 +197,4 @@ Methods throw on non-recoverable errors. Wrap in try/catch. Typical errors:
 -   Insufficient balance — from `sendTransaction`.
 -   Wallet locked — from any send; call `keyManager.unlock(pw)` first.
 -   Reorg mid-operation — the SDK handles reorgs during sync, but if one happens while a transaction is being constructed the send can fail and must be retried after next sync.
+-   `ReorgError` / `DeepReorgError` — from `sync()`; see [Reorgs](sync.md#reorgs).
