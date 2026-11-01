@@ -38,9 +38,10 @@ navio-core can optionally extend a BIP-39 mnemonic with a passphrase when derivi
 -   The passphrase is **never stored** — `dumpmnemonic` returns only the mnemonic. The same passphrase must be re-supplied to restore the wallet, so it acts as a second factor: the mnemonic alone is not enough.
 -   An **empty** passphrase reproduces the legacy derive-from-entropy path, so mnemonics created without one restore unchanged.
 -   Different passphrases over the same mnemonic yield entirely different wallets (plausible-deniability decoys).
+-   No NFKD normalization is applied, so since v0.2.2 navio-core requires an **ASCII** passphrase when creating a wallet. Restoring with a non-ASCII passphrase is still accepted, with a warning, so wallets created that way stay recoverable.
 
-!!! warning "Unreleased — post-0.1.3"
-    Mnemonic-passphrase support is on the `feat/mnemonic-bip39-passphrase` branch and is not yet in a tagged navio-core release. The `navio-sdk` KeyManager does not expose a passphrase parameter yet. See the [createwallet RPC notes](../rpc/categories/wallet.md#mnemonic-passphrase).
+!!! info "Availability"
+    Shipped in navio-core **v0.1.4**. The `navio-sdk` KeyManager does not expose a passphrase parameter yet. See the [createwallet RPC notes](../rpc/categories/wallet.md#mnemonic-passphrase).
 
 ## HD chain structure
 
@@ -113,11 +114,19 @@ const auditHex = keyManager.getAuditKeyHex();
 
 ### Importing an audit key
 
-Via RPC:
+Via RPC, create a watch-only wallet with the audit key as `seed`. A 160-hex seed is read as an audit key and the wallet is created with private keys disabled:
 
 ```bash
-navio-cli importblsctauditkey <hex>
+navio-cli -named createwallet wallet_name="audit" seed="<160-hex audit key>"
 ```
+
+Or offline with `navio-wallet -wallet=audit -blsct -seed=<160-hex audit key> create`.
+
+The resulting wallet holds only the audit key: it has no seed or mnemonic to export and cannot sign. On master (after v0.2.2):
+
+-   An audit key whose view-key half is zero or not below the group order, or whose spend-key half is not a valid G1 point or is the identity, is refused with `Invalid audit key` before any wallet file is created.
+-   `createwallet` with `disable_private_keys=true` and no audit key creates a wallet with no keys at all. Earlier releases generated a random private seed for such a wallet.
+-   A master seed or mnemonic combined with `disable_private_keys=true` is refused.
 
 Via SDK, creating a watch-only wallet:
 

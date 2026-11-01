@@ -24,7 +24,7 @@ Agreed:
 
 Alice:
     secret_A = random_32_bytes()
-    hash_A   = HASH160(secret_A)
+    hash_A   = SHA256(secret_A)       # 32 bytes; the Navio atomic_swap output requires SHA256
     share hash_A with Bob
 ```
 
@@ -34,7 +34,8 @@ Bob creates a Bitcoin HTLC:
 
 ```
 OP_IF
-    OP_HASH160 <hash_A> OP_EQUALVERIFY
+    OP_SIZE 32 OP_EQUALVERIFY
+    OP_SHA256 <hash_A> OP_EQUALVERIFY
     <alice_btc_pubkey> OP_CHECKSIG
 OP_ELSE
     <bob_timelock> OP_CHECKLOCKTIMEVERIFY OP_DROP
@@ -46,27 +47,32 @@ Funds 0.012 BTC to this script's P2SH/P2WSH. Broadcasts.
 
 ### Step 2 — Alice locks NAV
 
-After seeing Bob's BTC funding confirmed, Alice creates the BLSCT HTLC via:
+After seeing Bob's BTC funding confirmed, Alice creates the BLSCT HTLC with an `atomic_swap` output (amounts in navoshis; 1000 NAV = `100000000000`):
 
 ```bash
 navio-cli createblsctrawtransaction \
-    '[{...inputs...}]' \
-    '[{"address":"<htlc-output>", "amount":1000}]'
+    '[]' \
+    '[{"type":"atomic_swap", "address_a":"<bob_nav_address>", "address_b":"<alice_nav_address>",
+       "amount":100000000000, "hash":"<hash_A as 64 hex>", "locktime":<alice_timelock>}]'
 ```
 
-Where the HTLC script is:
+`address_a` gets the hashlock branch and `address_b` the timelock (refund) branch; `timelock_opcode` selects `"cltv"` (default) or `"csv"`. Fund, sign and broadcast it as in the [raw BLSCT tx guide](raw-blsct-tx.md).
+
+The resulting HTLC script is equivalent to:
 
 ```
 OP_IF
-    OP_HASH160 <hash_A> OP_EQUALVERIFY
-    <bob_nav_bls_pubkey> OP_BLSCHECKSIG
+    OP_SIZE 32 OP_EQUALVERIFY
+    OP_SHA256 <hash_A> OP_EQUALVERIFY
+    <bob_spending_key>
 OP_ELSE
     <alice_timelock> OP_CHECKLOCKTIMEVERIFY OP_DROP
-    <alice_nav_bls_pubkey> OP_BLSCHECKSIG
+    <alice_spending_key>
 OP_ENDIF
+OP_BLSCHECKSIG
 ```
 
-**Crucial:** set the output's BLSCT spending key to zero so script logic alone governs spending. Use [`deriveblsctspendingkey`](../rpc/blsct.md#deriveblsctspendingkey) helpers.
+For an `atomic_swap` output the wallet derives the output's spending keys itself (pass `blinding_key` to make them deterministic). If you build the script by hand instead, see [`deriveblsctspendingkey`](../rpc/blsct.md#deriveblsctspendingkey).
 
 !!! tip "Refund tracking is automatic in 0.1.3+"
     Alice sells NAV and owns the refund (ELSE / timelock) branch, which is *not* the branch the output is blinded to — historically she had to run [`importblsctscript`](../rpc/blsct.md#importblsctscript) to see and reclaim her own HTLC output. Since navio-core **0.1.3**, `createblsctrawtransaction` auto-registers the `atomic_swap` output as watch-only, so it shows up in [`listblsctunspent`](../rpc/blsct.md#listblsctunspent) with no extra step. Pass `"watch_only": false` on the output to opt out (e.g. when building the swap on another wallet's behalf).
@@ -104,7 +110,7 @@ Timelock ordering (`alice < bob`) ensures Alice has time to claim before her ref
 
 -   **Alice claims + Bob doesn't learn secret in time.** Can't happen on-chain — the secret is in a publicly-visible Bitcoin tx.
 -   **Chain reorg unwinds Alice's claim.** The secret is still public in whatever Bitcoin tx replaced it; as long as Bob's claim on Navio confirms before Alice's Navio timelock, funds are safe. For high-value swaps, use deeper confirmations.
--   **Fee estimation issues.** The refund path must be funded with enough fee to confirm; RBF or fee-bumping may be required.
+-   **Fee estimation issues.** The refund path must be funded with enough fee to confirm. On the Bitcoin side RBF or fee-bumping may be required; Navio has no BLSCT fee bump (`bumpfee` is refused on BLSCT networks), so fund the Navio claim and refund transactions with `fundblsctrawtransaction`, which always pays at least the consensus minimum fee.
 
 ---
 

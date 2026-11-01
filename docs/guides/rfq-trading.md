@@ -22,7 +22,7 @@ RPC reference: [P2P messaging commands](../rpc/p2pmsg.md) · How the message bus
 | **Standing order** | A maker's offer that keeps working **while the maker is offline**: a pre-signed half-transaction that other nodes cache and answer RFQs with on the maker's behalf. |
 | **uuid / quote_id** | Just receipts: the id of your RFQ, and the id of one particular quote answering it. |
 
-Amounts are in the smallest unit (like satoshis): `1 NAV = 100000000`. The empty string `""` means NAV itself; a token is identified by its hex `tokenId`.
+Amounts are in the smallest unit (like satoshis): `1 NAV = 100000000`. The empty string `""` means NAV itself; a token is identified by its 64-hex `tokenId`. On master (after v0.2.2) an NFT can be traded too: write it as `<tokenId>#<subid>`, for example `"$COLL#7"`, the form `listorders` prints.
 
 ---
 
@@ -78,7 +78,7 @@ navio-cli -rpcwallet=taker requestquote "$TOKA" "" 50000000000 1893456000
 
 Returns a `uuid` — your RFQ's receipt. Behind the scenes the question is broadcast over the encrypted bus; every maker node hears it, and the bus's stem routing hides which node asked. Your node also mints a fresh one-time key, so makers' answers are readable by you alone and can't be linked to your wallet.
 
-Open RFQs: `listrfqs`. Changed your mind: `cancelrfq <uuid>`.
+Open RFQs: `listrfqs`. Changed your mind: `cancelrfq <uuid>`. On master, `cancelrfq` fails while one of the RFQ's quotes is being accepted, since that accept may still broadcast the swap. Retry once it finishes: a successful accept removes the RFQ itself, and a failed one makes it cancellable again.
 
 ### 3. Maker: answer with a quote
 
@@ -120,6 +120,8 @@ navio-cli -rpcwallet=taker gettokenbalance "$TOKA"   # tokens arrived
 navio-cli -rpcwallet=maker getblsctbalance           # NAV arrived
 ```
 
+On master, the taker's wallet records the swap as its own send as soon as it broadcasts, so its change is spendable right away. The tokens it receives are funded by the maker's inputs and stay untrusted pending until the swap confirms.
+
 ---
 
 ## Standing orders: liquidity while you sleep
@@ -127,12 +129,19 @@ navio-cli -rpcwallet=maker getblsctbalance           # NAV arrived
 A swap intent only answers while the maker's node is online and its wallet unlocked. A **standing order** removes that requirement: the maker pre-signs their half once and publishes it, and *other* nodes cache it and answer matching RFQs with it on the maker's behalf.
 
 ```bash
-# maker (or a light wallet that built half_tx_hex elsewhere):
+# maker with a wallet on this node: the wallet builds and signs the half
+navio-cli -rpcwallet=maker broadcastorder "$TOKA" 500 "" 50 1893456000
+
+# light wallet that built half_tx_hex elsewhere (amounts in smallest units):
 navio-cli sendorder "<half_tx_hex>" "$TOKA" 50000000000 "" 5000000000 1893456000
 
 # anyone:
-navio-cli listorders     # standing orders this node has cached
+navio-cli listorders             # cache state: order count and bytes
+navio-cli listorders true        # also list the cached orders
+navio-cli listorders true 50 100 # page through them (master): count 50, skip 100
 ```
+
+`broadcastorder` takes amounts in coin units (`offer_amount`, `want_amount`), while `sendorder` takes smallest units. Both cap `expiry` at 14 days. The verbose list includes fields that are this node's own bookkeeping (`received`, `effective_expiry`); strip them before republishing the output.
 
 Standing orders are signed under the maker's session identity, so cached copies can't be tampered with, and they drop out automatically when their coins are spent or they expire.
 

@@ -23,7 +23,12 @@
 | -------------------------- | -------------------------------------------------------------------- |
 | `gettxout <txid> <vout>`   | Fetch a transparent UTXO (BLSCT outputs use [`getblsctoutput`](../blsct.md#getblsctoutput)) |
 | `gettxoutsetinfo`          | UTXO set statistics (requires `coinstatsindex` for fast path)        |
-| `getindexinfo`             | Status of optional indexes (`txindex`, `blockfilterindex`, `coinstatsindex`) |
+| `scantxoutset`             | Scan the UTXO set for descriptors. Since v0.2.2 the per-output `amount` is omitted for BLSCT outputs, whose value is hidden |
+| `getindexinfo`             | Status of optional indexes (`txindex`, `blockfilterindex`, `coinstatsindex`, and on master `outindex`) |
+| `gettxfromoutputhash`, `getoutputinfo` | Look up an output by its output hash. See [Output-hash lookups](rawtransactions.md#output-hash-lookups) |
+
+!!! info "`gettxoutsetinfo` hashes changed on master"
+    After v0.2.2, `gettxoutsetinfo` hashes every coin in one canonical form, so `hash_serialized_3` and `muhash` no longer depend on a node's reorg history. On chains with BLSCT outputs both values differ from earlier releases. An existing `-coinstatsindex` is wiped and rebuilt from genesis in the background on first start after upgrading; until it catches up, index-backed calls report that the index is syncing (pass `use_index=false` to compute from the UTXO set). A pruned node with `-coinstatsindex` must disable the index or `-reindex`. After a downgrade, delete `indexes/coinstats` (or `-reindex`) to rebuild it.
 
 ## Raw transaction queries
 

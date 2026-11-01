@@ -192,6 +192,18 @@ The exchange does not need a hot spending wallet at all if withdrawals are manua
 -   Hard cap on batch size.
 -   Revert-on-mismatch: if the broadcast tx id differs from the signed tx id, halt and alert.
 
+## Running against `naviod` directly
+
+If the hot side uses a `naviod` wallet rather than the SDK:
+
+-   **Withdrawals** use `sendtoblsctaddress` (or `sendtoaddress`, which routes to it). `sendmany`, `send`, `sendall`, `fundrawtransaction`, `signrawtransactionwithwallet` and `bumpfee` are refused on mainnet. There is no fee bump. BLSCT fees follow the consensus fee rate, and if a withdrawal leaves the mempool without confirming, `abandontransaction` restores its coins so you can send again. See [BLSCT-only networks](../rpc/index.md#blsct-only-networks).
+-   **Record txids, not output hashes.** `sendtoblsctaddress` returns an `outputHash`, not a txid. Resolve it with `gettxfromoutputhash` before storing it or calling `gettransaction`. With `-outindex` (master, after v0.2.2), `getoutputinfo <outputhash>` also tells you whether and where the output was spent.
+-   **Amounts and fees.** On master, `gettransaction` reports a BLSCT send of X as `amount` -X with `fee` equal to the transaction's own fee. Earlier releases showed a large negative `fee` and a positive `amount` for BLSCT sends, so don't reconcile on those top-level fields with v0.2.2 or older; use the `details` entries.
+-   **Batching dust.** `consolidate` merges small deposit outputs. With `max_txs` above 1 it can return fewer txids than requested after a mid-run failure (the error is in the wallet log); call it again to see the error.
+-   **Chained withdrawals** (master): after an aggregated send, the wallet's own change is spendable at 0 confirmations. If the aggregate is evicted or conflicted, the wallet marks it and the sends chained on it as conflicted, or lets you `abandontransaction` them, and the original coins return.
+-   **Reorgs of merged blocks** (master): a send that a staker merged into a block transaction under another txid returns to unconfirmed when that block is disconnected, like any other wallet transaction.
+-   **Monitor wallet.** A node-side audit wallet is created with `createwallet` and `seed=<audit key>`; see [Build a watch-only audit wallet](audit-wallet.md#node-side-audit-wallet-with-navio-cli).
+
 ## Proof of reserves
 
 BLSCT's [balance proofs](../blsct/range-proofs.md#balance-proofs-related-but-separate) enable cryptographic proof of solvency without revealing individual balances:

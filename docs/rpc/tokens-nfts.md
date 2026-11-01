@@ -13,10 +13,16 @@ Both live on the BLSCT transaction format with confidential amounts. An NFT effe
 
 **Identifier conventions:**
 
--   **Collection token id** — 64-hex. Identifies the collection itself. Returned from `createtoken` / `createnft`.
--   **NFT token id** — 80-hex. Equal to `collection_token_id (64 hex) || subid (16 hex)` in navio-core RPC byte order. Identifies a specific NFT inside a collection.
+-   **Token / collection id** — 64 hex characters. Identifies a fungible token or an NFT collection. Returned as `tokenId` from `createtoken` / `createnft`.
+-   **NFT** — a collection id plus a numeric `nft_id` (subid). The mint and send commands take them as two arguments (`token_id`, `nft_id`). Commands that take a single token string — the `token_id` of a [`createblsctrawtransaction`](blsct.md#createblsctrawtransaction) output and the RFQ / standing-order commands on the [P2P messaging page](p2pmsg.md) — write an NFT as `<64-hex token id>#<subid>`, for example `ba12…7edd#42`, the form `listorders` prints. The subid is plain decimal. NAV is the empty string.
 
-The SDK normalises both forms — pass either `tokenId: '<64-hex>'` (collection, fungible send) or `tokenId: '<80-hex>'` (specific NFT) or `collectionTokenId + nftId` to [`NavioClient.sendNft`](../sdk/sending.md#send-nft).
+!!! info "Version note"
+    The `#<subid>` form in `createblsctrawtransaction` and the RFQ / order RPCs is on master, after v0.2.2. Earlier releases accept only a 64-hex token id there, so they cannot name an NFT.
+
+The SDK normalises both forms — pass either `tokenId: '<64-hex>'` (collection, fungible send) or `tokenId: '<80-hex>'` (specific NFT: collection id followed by the 16-hex subid) or `collectionTokenId + nftId` to [`NavioClient.sendNft`](../sdk/sending.md#send-nft).
+
+!!! warning "`outputHash` is not a txid"
+    `createtoken`, `createnft`, `minttoken`, `mintnft`, `sendtokentoblsctaddress` and `sendnfttoblsctaddress` return the output hash of one output they created. Use [`gettxfromoutputhash`](categories/rawtransactions.md#output-hash-lookups) to find the transaction.
 
 ## Create a token collection
 
@@ -28,8 +34,8 @@ Returns:
 
 ```json
 {
-  "outputHash": "<tx_output_hash>",
-  "tokenId":    "<64-hex collection id>"
+  "outputHash": "<output hash of the creating output>",
+  "tokenId":    "<64-hex token id>"
 }
 ```
 
@@ -57,7 +63,7 @@ navio-cli minttoken <token_id> <bech32m_address> 50000
 navio-cli mintnft <collection_token_id> <nft_id> <bech32m_address> '{"name":"Mona Lisa","artist":"Da Vinci"}'
 ```
 
-`nft_id` must not already be minted in the collection. The 80-hex full NFT id is `collection_token_id || nft_id_serialised`.
+`nft_id` must not already be minted in the collection.
 
 ## Query balances
 
@@ -90,7 +96,13 @@ navio-cli listtokens
 
 # Inspect a specific token
 navio-cli gettoken <token_id>
+
+# Wallet-aware variants (v0.2.2+): add an "ismine" flag, true when this wallet created the token and can mint it
+navio-cli listwallettokens          # pass true to list only tokens this wallet created
+navio-cli getwallettoken <token_id>
 ```
+
+`listwallettokens` and `getwallettoken` are read-only. They need the wallet to be unlocked, and a wallet without an HD seed (for example one created from an audit key) reports `ismine` false for everything.
 
 ## From the SDK
 

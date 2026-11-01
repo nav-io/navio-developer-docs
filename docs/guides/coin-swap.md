@@ -116,20 +116,19 @@ auditKey = 000000000000000000000000000000000000000000000000000000000000000000000
 #### Audit via `navio-cli` against a local `naviod`
 
 ```bash
-# 1. Create a watch-only audit wallet.
-navio-cli createwallet "bridge-audit" true false "" false true false
-# createwallet args: name, disable_private_keys, blank, passphrase,
-#                    avoid_reuse, descriptors, load_on_startup
+# 1. Create a watch-only wallet from the audit key. A 160-hex seed is an
+#    audit key; the wallet is created with private keys disabled.
+navio-cli -named createwallet wallet_name="bridge-audit" seed="<auditKey>"
 
-# 2. Import the bridge audit key. rescan_from_height avoids scanning
-#    pre-bridge history; set to the genesis-of-bridge height or 0.
-navio-cli -rpcwallet=bridge-audit importblsctauditkey <auditKey> 0
+# 2. Scan the chain. An audit-key wallet has no birthday, so pass the height
+#    the bridge wallet was created at (0 scans from genesis).
+navio-cli -rpcwallet=bridge-audit rescanblockchain 0
 
-# 3. Wait for the rescan to finish, then list outgoing transactions.
-navio-cli -rpcwallet=bridge-audit listblscttransactions "*" 1000 0 true
+# 3. List the wallet's history.
+navio-cli -rpcwallet=bridge-audit listtransactions "*" 1000 0 true
 ```
 
-`listblscttransactions` returns the wallet's entire visible history with the audit key. Filter for `category == "send"` to get bridge payouts; each entry carries `amount` (negative, in NAV), `confirmations`, `blockheight`, and the recipient stealth output.
+`listtransactions` returns the history visible with the audit key. Filter for `category == "send"` to get bridge payouts; each entry carries `amount` (negative, in NAV), `confirmations` and `blockheight`.
 
 #### Audit in-browser (same path the official page uses)
 

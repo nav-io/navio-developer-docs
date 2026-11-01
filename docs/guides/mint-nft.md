@@ -84,6 +84,25 @@ await client.sendNft({
 
 After the recipient syncs their wallet, the NFT appears in their `getNftBalances()`.
 
+## The same with `navio-cli`
+
+```bash
+# 1. create the collection (max supply 100); note tokenId in the result
+navio-cli createnft '{"collection":"Artifacts","creator":"alice"}' 100
+
+# 2. mint NFT #1 to one of your addresses
+navio-cli mintnft <tokenId> 1 "$(navio-cli getnewaddress)" '{"name":"Sword of Sparks","rarity":"common"}'
+
+# 3. check what this wallet created and owns
+navio-cli listwallettokens true          # collections this wallet created (ismine)
+navio-cli getnftbalance <tokenId>
+
+# 4. transfer NFT #1
+navio-cli sendnfttoblsctaddress <tokenId> 1 "tnv1...friend..." "Gift"
+```
+
+`createnft`, `mintnft` and `sendnfttoblsctaddress` return an `outputHash`, which is not a txid; use `gettxfromoutputhash` to find the transaction. Where one string names a single NFT, as in the RFQ RPCs and `createblsctrawtransaction` outputs, it is written `<tokenId>#<nft_id>` (on master, after v0.2.2).
+
 ## Constraints
 
 -   **Only the collection creator wallet can mint.** The token-signing key is derived from the creator's master spending secret; losing the mnemonic permanently disables minting for that collection.
