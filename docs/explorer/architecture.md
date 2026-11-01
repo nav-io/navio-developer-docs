@@ -34,8 +34,9 @@ flowchart LR
 -   Polls `naviod` via JSON-RPC — new blocks, transactions, peers, mempool.
 -   Fetches peer geolocation (ip-api) with local caching.
 -   Fetches NAV price + 24h change (MEXC) — populates `price_history`.
--   Runs a direct-P2P peer crawler on testnet — `version`/`verack` + `getaddr` with bounded concurrency.
+-   Runs a direct-P2P peer crawler — `version`/`verack` + `getaddr` with bounded concurrency.
 -   Computes per-block supply deltas (subsidy + fees − burn).
+-   Snapshots node counts after each crawl, the node's staked-commitment set every 5 minutes, and p2pmsg overlay stats every minute (see [Database schema](database.md)).
 -   Writes to SQLite in WAL mode for safe concurrent reads.
 -   Hot-reloads in dev via `tsx watch`.
 

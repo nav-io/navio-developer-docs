@@ -60,22 +60,42 @@ const tokenUtxos = await client.getUnspentOutputs(tokenId);   // specific asset
 
 ```ts
 interface WalletOutput {
-    outputHash:        string;  // 64-hex
-    txHash:            string;
-    outputIndex:       number;
-    blockHeight:       number;
-    amount:            bigint;
-    memo:              string | null;
-    tokenId:           string | null;
-    blindingKey:       string;
-    spendingKey:       string;
-    isSpent:           boolean;
-    spentTxHash:       string | null;
-    spentBlockHeight:  number | null;
+    outputHash:         string;  // 64-hex
+    txHash:             string;
+    outputIndex:        number;
+    blockHeight:        number;
+    amount:             bigint;
+    gamma:              string;
+    memo:               string | null;
+    tokenId:            string | null;
+    blindingKey:        string;         // on-chain blsctData.blindingKey (k · sk_destination)
+    ephemeralKey:       string | null;  // on-chain blsctData.ephemeralKey (k · G), 0.2.0+
+    spendingKey:        string;
+    isSpent:            boolean;
+    spentTxHash:        string | null;
+    spentBlockHeight:   number | null;
+    txType:             'received' | 'sent' | 'stake';
+    timestamp:          number;         // block time (current time for mempool outputs)
+    isStakedCommitment: boolean;        // 0.4.0+
 }
 ```
 
 `outputHash` is the canonical outpoint identifier — see [outpoint model](../concepts/outpoint.md).
+
+`ephemeralKey` is public chain data: the key an [output authorship signature](sending.md#output-authorship) verifies against. It is `null` for outputs stored by an SDK older than 0.2.0 until they are re-synced.
+
+## Staked outputs {#staked-outputs}
+
+Since **0.4.0** the wallet recognises staked commitments (NAV locked for staking, identified by their `OP_STAKED_COMMITMENT` script) during sync and in the mempool, and flags them with `isStakedCommitment`. They are **not** spendable balance:
+
+```ts
+await client.getBalance();          // spendable NAV — excludes staked commitments
+await client.getUnspentOutputs();   // excludes staked commitments
+await client.getStakedOutputs();    // unspent staked commitments only
+await client.getStakedBalance();    // bigint, satoshis locked for staking
+```
+
+Coin selection never picks a staked commitment, for sends, token fees, RFQ swaps or standing orders. Before 0.4.0 they were counted as spendable NAV. See [Staking](staking.md).
 
 ## All outputs (including spent)
 

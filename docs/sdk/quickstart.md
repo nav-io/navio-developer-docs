@@ -76,10 +76,10 @@ The fastest local iteration loop:
 
 ```bash
 # One shell
-naviod -regtest -txindex=1 -server=1 -rpcuser=u -rpcpassword=p
+naviod -chain=blsctregtest -txindex=1 -server=1 -rpcuser=u -rpcpassword=p
 
 # Another shell
-navio-cli -regtest generatetoaddress 101 $(navio-cli -regtest getnewaddress)
+navio-cli -chain=blsctregtest generatetoaddress 101 $(navio-cli -chain=blsctregtest getnewaddress)
 ```
 
 And in your test code:
@@ -87,9 +87,9 @@ And in your test code:
 ```ts
 const client = new NavioClient({
     walletDbPath: ':memory:',
-    databaseAdapter: 'memory',
+    databaseAdapter: 'better-sqlite3',
     backend: 'p2p',
-    p2p: { host: 'localhost', port: 18444, network: 'regtest' },
+    p2p: { host: 'localhost' },   // port 18444 follows network: 'regtest'
     network: 'regtest',
     createWalletIfNotExists: true,
 });

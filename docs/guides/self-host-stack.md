@@ -24,12 +24,28 @@
                 └───────────────┘
 ```
 
+## Images
+
+-   **naviod** — build from [`nav-io/navio-docker`](https://github.com/nav-io/navio-docker), which packages the official, checksum-verified navio-core release binaries on `debian:bookworm-slim` (non-root `navio` user, `tini` as PID 1, datadir `/home/navio/.navio`). Pin a release with the `NAVIO_RELEASE_TAG` build argument. Three Dockerfile targets:
+
+    | Target           | Adds                                   | Node flags set by the entrypoint | Disable at run time |
+    | ---------------- | -------------------------------------- | -------------------------------- | ------------------- |
+    | `node` (default) | —                                      | —                                | —                   |
+    | `tor`            | Tor client; publishes an onion service | `-onion=127.0.0.1:9050`          | `NAVIO_TOR=0`       |
+    | `i2p`            | i2pd router (SAM on loopback only)     | `-i2psam=127.0.0.1:7656`         | `NAVIO_I2P=0`       |
+
+    Keep the router state on a volume (`/home/navio/.tor` or `/home/navio/.i2pd`). Tor needs no published port; for I2P, publishing router port `48480` TCP+UDP is optional but speeds up tunnel building. The `i2p` target builds for `linux/amd64`, `linux/arm64` and `linux/arm/v7` only.
+-   **electrumx** and **navio-blocks** — build from [`nav-io/electrumx`](https://github.com/nav-io/electrumx) and [`nav-io/navio-blocks`](https://github.com/nav-io/navio-blocks); the `image:` names below are local tags.
+
 ## `docker-compose.yml`
 
 ```yaml
 services:
   naviod:
-    image: navio/naviod:latest
+    build:
+      context: https://github.com/nav-io/navio-docker.git
+      target: node            # or tor / i2p
+    image: navio/naviod:local
     container_name: naviod
     restart: unless-stopped
     volumes:
@@ -51,7 +67,7 @@ services:
       - -dbcache=2000
 
   electrumx:
-    image: navio/electrumx:latest
+    image: navio/electrumx:local
     container_name: electrumx
     restart: unless-stopped
     depends_on: [naviod]
@@ -73,7 +89,7 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
 
   explorer:
-    image: navio/blocks:latest
+    image: navio/blocks:local
     container_name: navio-blocks
     restart: unless-stopped
     depends_on: [naviod]
@@ -169,7 +185,8 @@ openssl s_client -connect electrum.example.com:40002 -servername electrum.exampl
 ## Upgrade procedure
 
 ```bash
-docker compose pull
+# rebuild naviod from the newest navio-core release (or set NAVIO_RELEASE_TAG)
+docker compose build --pull --no-cache naviod
 docker compose up -d
 
 # verify heights match across services

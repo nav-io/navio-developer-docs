@@ -7,7 +7,7 @@ Curve-level primitives exposed by `navio-blsct`. See the [BLS12-381 curve page](
 A field element in $\mathbb{F}_r$ — 32 bytes, little-endian. Used as private keys, blinding factors, nonces.
 
 ```ts
-import { Scalar } from 'navio-blsct';
+import { Scalar } from '@nav-io/navio-blsct';
 
 const a = Scalar.random();              // CSPRNG-sourced
 const b = Scalar.fromHex('ab...');      // parse, reduce mod r
@@ -35,7 +35,7 @@ a.equals(b);          // boolean
 A $G_1$ element — 48 bytes compressed. Used for public keys, commitments, Bulletproofs generators.
 
 ```ts
-import { Point, Scalar } from 'navio-blsct';
+import { Point, Scalar } from '@nav-io/navio-blsct';
 
 const g = Point.generator();
 const p = Point.random();
@@ -63,7 +63,7 @@ p.equals(q);
 A BLS signature — a compressed 48-byte $G_1$ element.
 
 ```ts
-import { Signature } from 'navio-blsct';
+import { Signature } from '@nav-io/navio-blsct';
 
 const sig = Signature.fromHex('ab...');
 sig.toHex();
@@ -82,7 +82,7 @@ For complete verification signatures are paired with a `PublicKey` / `PublicKeys
 A Bitcoin-style script with Navio-specific opcode extensions (notably `OP_BLSCHECKSIG = 0xbb`).
 
 ```ts
-import { Script } from 'navio-blsct';
+import { Script } from '@nav-io/navio-blsct';
 
 const s = Script.fromHex('ab...');
 s.toHex();

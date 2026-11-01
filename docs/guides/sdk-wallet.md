@@ -11,7 +11,7 @@ Goal: a Node.js CLI that creates a wallet, syncs to the chain, shows balance, an
 ```bash
 mkdir navio-wallet-cli && cd navio-wallet-cli
 npm init -y
-npm install navio-sdk
+npm install navio-sdk          # 0.4.0 at the time of writing
 npm install -D typescript tsx @types/node
 npx tsc --init --target ES2022 --module nodenext --moduleResolution nodenext --esModuleInterop --strict
 ```
@@ -131,6 +131,8 @@ npm run wallet send tnv1...recipient... 1
 -   Add `watch` command that runs `startBackgroundSync` and prints new-block / new-tx events.
 -   Add `encrypt` + `unlock` — call `km.setPassword(pw)` / `km.unlock(pw)`.
 -   Add `tokens` listing asset balances via `client.getAssetBalances()`.
--   Replace Electrum with direct P2P — switch the config.
+-   Replace Electrum with direct P2P — set `backend: 'p2p'` and `p2p: { host }`; the port follows `network` (navio-sdk 0.1.36+).
+-   Add `stake` / `unstake` commands — `client.delegateStake({ amount, delegateKey })`, `client.unstake()`, and show `client.getStakedBalance()` next to the spendable balance (navio-sdk 0.4.0+, see [Staking](../sdk/staking.md)).
+-   Handle a `DeepReorgError` from `sync` by calling `client.getSyncManager().resetSyncState()` and syncing again; ordinary reorgs are recovered automatically since 0.3.0 (see [Reorgs](../sdk/sync.md#reorgs)).
 
 All APIs used here are documented in the [SDK section](../sdk/index.md).

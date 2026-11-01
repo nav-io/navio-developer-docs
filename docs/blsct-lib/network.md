@@ -11,7 +11,7 @@ This is the standalone `navio-blsct` mapping from `src/blsct/key_io.h`. Core `na
 ## Setting the chain
 
 ```ts
-import { setChain, getChain, BlsctChain } from 'navio-blsct';
+import { setChain, getChain, BlsctChain } from '@nav-io/navio-blsct';
 
 setChain(BlsctChain.Mainnet);   // default
 setChain(BlsctChain.Testnet);

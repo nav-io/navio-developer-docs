@@ -26,14 +26,20 @@ Full-stack block explorer for Navio. Indexer + REST API + React frontend. Respec
 | `/`               | Home           | Search, stat cards, latest blocks + transactions                            |
 | `/blocks`         | Block list     | Paginated block table                                                        |
 | `/block/:id`      | Block detail   | Header + transaction list                                                    |
-| `/tx/:txid`       | Transaction    | Metadata + BLSCT-aware inputs/outputs                                        |
+| `/tx/:txid`       | Transaction    | Metadata + BLSCT-aware inputs/outputs; "Delegated Stake" badge on cold-staked outputs |
+| `/outputs`        | Outputs        | Output list with type / token / spent filters, type distribution, new-outputs-over-time chart |
 | `/output/:hash`   | Output detail  | Single output view keyed by `output_hash`                                    |
 | `/tokens`         | Tokens         | List of known collections                                                    |
-| `/token/:id`      | Token detail   | Collection metadata, mint history                                            |
-| `/nft/:id`        | NFT detail     | Specific NFT with collection metadata                                        |
-| `/network`        | Network        | Node count, world map, version distribution                                   |
+| `/token/:tokenId` | Token detail   | Collection metadata, mint history                                            |
+| `/nft/:tokenId/:index` | NFT detail | Specific NFT with collection metadata                                      |
+| `/network`        | Network        | Node counts and history chart, world map, versions, Navio service-bit badges |
+| `/staking`        | Staking        | Staked set, cold-staking delegations, activity, commitment list             |
+| `/overlay`        | P2P overlay    | p2pmsg overlay stats: relay-capable peers, aggregation pool, RFQ / order counts |
 | `/supply`         | Supply         | Total, burned, chart, reward schedule                                        |
 | `/price`          | Price          | Price chart, volume, market cap                                              |
+| `/search`         | Search         | Block, transaction, output, collection or NFT lookup                         |
+
+The header groups Network (Nodes / Staking / P2P Overlay) and Economy (Supply / Price) into dropdowns. A header toggle switches between mainnet and testnet; the API serves mainnet under `/api/*` and testnet under `/api/testnet/*`.
 
 ## Privacy properties
 

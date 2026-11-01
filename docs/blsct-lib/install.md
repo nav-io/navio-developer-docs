@@ -1,18 +1,24 @@
 # Installation
 
 ```bash
-npm install navio-blsct
+npm install @nav-io/navio-blsct
 ```
+
+!!! note "Package name"
+    The TypeScript binding is published as **`@nav-io/navio-blsct`** (current: 1.3.0). The unscoped `navio-blsct` npm package stopped at 1.1.15 and is not updated; navio-sdk depends on the scoped package. Since 1.2.0 the binding is built against navio-core's vendored supranational/blst backend.
 
 ## Node.js
 
 Requirements:
 
 -   Node.js ≥ 18 (latest LTS recommended).
--   `g++`, `make`, `cmake`, `swig`, `pkg-config` — the package builds native C++ libraries from source during install. Expect a few minutes on first install.
+-   `g++`, `make`, `swig`, `autoconf`, `automake`, `libtool`, `pkg-config` — the package builds native C++ libraries from source during install. Expect a few minutes on first install.
+-   Windows: Visual Studio 2022 (or its Build Tools) with the "Desktop development with C++" workload, CMake and git.
+
+The native library is built from the navio-core commit pinned in the package's `navio-core.sha`.
 
 ```ts
-import { Scalar, Point, BlsctChain, setChain } from 'navio-blsct';
+import { Scalar, Point, BlsctChain, setChain } from '@nav-io/navio-blsct';
 
 setChain(BlsctChain.Mainnet);
 
@@ -29,7 +35,7 @@ import {
     loadBlsctModule,
     Scalar, Point,
     BlsctChain, setChain,
-} from 'navio-blsct/browser';
+} from '@nav-io/navio-blsct/browser';
 
 await loadBlsctModule();
 
@@ -42,7 +48,7 @@ const s = Scalar.random();
 If your bundler respects the `browser` entry in `package.json` automatically, you can use the plain import:
 
 ```ts
-import { loadBlsctModule, Scalar } from 'navio-blsct';
+import { loadBlsctModule, Scalar } from '@nav-io/navio-blsct';
 await loadBlsctModule();
 ```
 
@@ -50,12 +56,13 @@ Vite, Webpack 5, and esbuild all respect the field out of the box. For older too
 
 ### Serving WASM files
 
-The WASM binary is loaded at runtime from the package's `dist/browser/` directory. If your host restricts asset paths, copy `node_modules/navio-blsct/dist/browser/*.wasm` into your static assets and set the base path before `loadBlsctModule()`:
+The WASM loader and binary ship in the package's `wasm/` directory (`@nav-io/navio-blsct/wasm/blsct.js`, `…/blsct.wasm`) and are resolved relative to the loader by default. If your host restricts asset paths, copy them into your static assets and pass the location, or the binary itself, to `loadBlsctModule()`:
 
 ```ts
-import { setWasmBasePath, loadBlsctModule } from 'navio-blsct';
-setWasmBasePath('/assets/blsct');
-await loadBlsctModule();
+import { loadBlsctModule } from '@nav-io/navio-blsct/browser';
+
+await loadBlsctModule({ wasmPath: '/assets/blsct/blsct.js' });
+// or: await loadBlsctModule({ wasmBinary: await (await fetch('/assets/blsct.wasm')).arrayBuffer() });
 ```
 
 ## Tree-shaking
@@ -64,7 +71,7 @@ The library is ESM-first. All exports are named. A typical Vite / Rollup build r
 
 ## TypeScript
 
-Full `.d.ts` coverage ships with the package. No `@types/navio-blsct` needed.
+Full `.d.ts` coverage ships with the package. No separate `@types` package needed.
 
 ```ts
 // tsconfig essentials

@@ -176,6 +176,8 @@ Response:
 
 The [SDK Electrum sync provider](../sdk/sync.md#electrum-provider) uses this exclusively during initial sync — call latency dominates otherwise.
 
+The returned `blocks` cover exactly `[start, next_height)`, consecutive from the requested height. Since the 2026-09-26 server fix, a page cut short by the size limit always includes every block it assembled, so `next_height` never points past an omitted block. Clients should still resume at `start + len(blocks)` (navio-sdk 0.3.0+ does).
+
 ### `blockchain.transaction.get_output`
 
 Fetch a serialised BLSCT output by `output_hash`:
@@ -188,6 +190,45 @@ Fetch a serialised BLSCT output by `output_hash`:
 ```
 
 Returns the raw serialised output (hex string).
+
+### `blockchain.transaction.get_outputs`
+
+Batch form of `get_output`, added 2026-10-27. Takes up to **250** output hashes and returns their serialised hex in request order, `null` for an unknown hash:
+
+```json
+{
+  "method": "blockchain.transaction.get_outputs",
+  "params": [["a1b2c3d4...", "e5f6a7b8..."]]
+}
+```
+
+```json
+["<output hex>", null]
+```
+
+If the response would exceed `MAX_SEND` it is cut short; the client asks again for the hashes past the end of the returned list. Its bandwidth is billed at 10% of the normal cost, so a wallet catching up on thousands of owned outputs (a staking wallet gains one per staked block) stays under the session cost limits. Navio Electrum 4.9.11+ uses it when the server supports it, and falls back to `get_output` otherwise.
+
+### RFQ bridge {#rfq-bridge}
+
+The fork bridges light wallets to the daemon's [encrypted p2p messaging](../concepts/p2p-messaging.md) RFQ and swap RPCs, so [navio-sdk trading](../sdk/trading.md) works over Electrum. The daemon must have p2pmsg enabled.
+
+| Method                                  | Params                                                    |
+| --------------------------------------- | --------------------------------------------------------- |
+| `blockchain.p2pmsg.info`                | —                                                         |
+| `blockchain.rfq.request_quote`          | `buy_token, sell_token, size, expiry`                     |
+| `blockchain.rfq.list_quotes`            | `uuid, min_fill_ratio=1.0`                                |
+| `blockchain.rfq.accept_quote`           | `uuid, quote_id, taker_half_hex`                          |
+| `blockchain.rfq.cancel`                 | `uuid`                                                    |
+| `blockchain.swap.set_intent` / `clear_intent` / `list_intents` | maker swap intents                 |
+| `blockchain.swap.pending_requests`      | inbound RFQs matching a local intent                      |
+| `blockchain.swap.pending.subscribe` / `unsubscribe` | push notifications for the above              |
+| `blockchain.swap.send_quote`            | an externally built maker half for an RFQ                 |
+| `blockchain.swap.broadcast_order`       | a standing order                                          |
+
+Swap halves are built and signed by the wallet; the server only relays them to the daemon.
+
+!!! warning "Raise `REQUEST_TIMEOUT`"
+    Calls that make the daemon broadcast a p2pmsg message wait for its anti-spam proof of work, which can take 10–30 s or more. ElectrumX aborts any request over `REQUEST_TIMEOUT` (default 30 s, "server busy - request timed out"), so a bridge server needs `REQUEST_TIMEOUT=180` or higher, matching navio-sdk's default `p2pmsgTimeout`.
 
 ### Removed methods
 
