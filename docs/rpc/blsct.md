@@ -989,8 +989,8 @@ The mnemonic can only be retrieved from wallets created with a BIP-39 mnemonic.
 Wallets imported from a raw seed/master key, and wallets created before mnemonic backup
 was stored, have no mnemonic to export: the mnemonic cannot be derived from the seed.
 Use 'getblsctseed' to back up those wallets instead.
-If the wallet was created with a BIP-39 mnemonic passphrase, the passphrase is NOT included
-and must be supplied separately when restoring the wallet.
+If the wallet was created with a seedphrase extension, the extension is NOT included
+and must be supplied separately (as 'seedphrase_extension') when restoring the wallet.
 Note: This command is only compatible with BLSCT wallets.
 
 **Parameters**

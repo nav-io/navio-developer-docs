@@ -60,7 +60,7 @@ See [Security hardening](../node/security.md#rpc-authentication) for production 
 
 ## BLSCT-only networks {#blsct-only-networks}
 
-Mainnet, testnet and `blsctregtest` accept only confidential (BLSCT) transactions. The RPCs below build, sign or fund transparent transactions, or manage transparent keys, so on these networks they fail with an error naming the BLSCT alternative instead of doing work that can never confirm. `regtest` and `signet` are not BLSCT-only and keep the inherited behaviour.
+Mainnet, testnet and `blsctregtest` accept only confidential (BLSCT) transactions, and so does signet from v0.3.0, which made it a BLSCT network (see [Networks](../concepts/networks.md#signet)). The RPCs below build, sign or fund transparent transactions, or manage transparent keys, so on these networks they fail with an error naming the BLSCT alternative instead of doing work that can never confirm. Only plain `regtest` is not BLSCT-only and keeps the inherited behaviour. The transparent-RPC refusals themselves are new in v0.3.0.
 
 | RPC | On a BLSCT-only network | Use instead |
 | --- | ----------------------- | ----------- |
@@ -82,7 +82,7 @@ Some RPCs refuse a **BLSCT wallet** on any network:
 
 -   `dumpwallet` and `importwallet` only handle transparent keys. Back up a BLSCT wallet with `dumpmnemonic` (or `getblsctseed`) plus `backupwallet`, and restore it with `createwallet` `seed`/`mnemonic` or `restorewallet`.
 -   `addmultisigaddress` fails with "addmultisigaddress does not support BLSCT (confidential) wallets". `createmultisig` and `addmultisigaddress` refuse the `blsct` and `blsct-stake` address types (`RPC_INVALID_ADDRESS_OR_KEY`).
--   `migratewallet` refuses every wallet before touching it: all wallets are already stored in SQLite (`Error: This wallet already uses SQLite`). The wallet stays loaded and no backup file is written.
+-   `scantxoutset` and `scanblocks` refuse an `addr()` descriptor of a BLSCT address with `RPC_INVALID_PARAMETER` ("Cannot scan for a BLSCT address: … BLSCT outputs are found by view key (the wallet), not by script"), new in v0.3.0. Every BLSCT output has the same bare `OP_TRUE` script whatever its recipient, so such a scan used to match every BLSCT output. Find a wallet's BLSCT outputs with the wallet (or an [audit-key wallet](../guides/audit-wallet.md)) instead. `raw(51)` is still accepted.
 
 ## Removed RPCs
 
@@ -91,9 +91,10 @@ Some RPCs refuse a **BLSCT wallet** on any network:
 | `analyzepsbt`, `combinepsbt`, `converttopsbt`, `createpsbt`, `decodepsbt`, `descriptorprocesspsbt`, `finalizepsbt`, `joinpsbts`, `utxoupdatepsbt` | PSBTs only describe transparent transactions. Build, inspect and sign with `createblsctrawtransaction`, `fundblsctrawtransaction`, `decodeblsctrawtransaction` and `signblsctrawtransaction`. `decodepsbt` and `analyzepsbt` have no replacement. |
 | `walletcreatefundedpsbt`, `walletprocesspsbt`, `psbtbumpfee` | No RPC takes or returns a PSBT any more. `send`/`sendall` lost their `psbt` option and result field; `fundrawtransaction` no longer accepts a `psbt` option. |
 | `enumeratesigners`, `walletdisplayaddress` | External signer (hardware wallet) support was removed with the `-signer` option. `createwallet` keeps the `external_signer` parameter for positional compatibility, but `true` is an error; `getwalletinfo` no longer returns `external_signer`. |
+| `migratewallet` | It converted Berkeley DB legacy wallets to SQLite descriptor wallets. Berkeley DB support is gone and every navio wallet is already stored in SQLite, so in v0.2.2 it could only refuse (`Error: This wallet already uses SQLite`). Legacy wallets still load as before. |
 | `listblscttransactions` | Removed in v0.1.5. Use `listtransactions` / `gettransaction`. |
 
-Calling a removed RPC fails with `Method not found` (`-32601`). These removals are on master and not yet in a tagged release (latest: v0.2.2), except `listblscttransactions`.
+Calling a removed RPC fails with `Method not found` (`-32601`). All removals in this table except `listblscttransactions` are new in **v0.3.0**; v0.2.2 still has them.
 
 ## Error codes
 

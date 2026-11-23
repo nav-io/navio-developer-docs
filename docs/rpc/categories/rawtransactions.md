@@ -14,12 +14,12 @@ Mainnet is BLSCT-only. Use the BLSCT raw-transaction commands — they are the o
 | `gettxfromoutputhash`                                            | Find the transaction that created an output        |
 | `getoutputinfo`                                                  | Where an output was created and spent (needs `-outindex`) |
 
-`createblsctrawtransaction` outputs take a `token_id`: the 64-hex token id, the token id followed by `#<subid>` for an NFT (on master, after v0.2.2), or empty for NAV. A malformed `token_id` fails with `RPC_INVALID_PARAMETER`.
+`createblsctrawtransaction` outputs take a `token_id`: the 64-hex token id, the token id followed by `#<subid>` for an NFT (new in v0.3.0), or empty for NAV. A malformed `token_id` fails with `RPC_INVALID_PARAMETER`.
 
-On mainnet, testnet and `blsctregtest`, `createrawtransaction`, `signrawtransactionwithkey`, `fundrawtransaction` and `signrawtransactionwithwallet` are refused. See [BLSCT-only networks](../index.md#blsct-only-networks).
+On mainnet, testnet, `blsctregtest` and (v0.3.0+) signet, `createrawtransaction`, `signrawtransactionwithkey`, `fundrawtransaction` and `signrawtransactionwithwallet` are refused. See [BLSCT-only networks](../index.md#blsct-only-networks).
 
 !!! warning "PSBT is not supported"
-    Navio does not implement BIP-174 PSBT. On master (after v0.2.2) every PSBT RPC has been removed (`createpsbt`, `decodepsbt`, `analyzepsbt`, `walletcreatefundedpsbt`, `walletprocesspsbt`, …) and calling one fails with `Method not found`. Use the BLSCT raw-transaction flow above; the end-to-end is covered in the [raw BLSCT tx guide](../../guides/raw-blsct-tx.md).
+    Navio does not implement BIP-174 PSBT. In v0.3.0 every PSBT RPC has been removed (`createpsbt`, `decodepsbt`, `analyzepsbt`, `walletcreatefundedpsbt`, `walletprocesspsbt`, …) and calling one fails with `Method not found`. Use the BLSCT raw-transaction flow above; the end-to-end is covered in the [raw BLSCT tx guide](../../guides/raw-blsct-tx.md).
 
 ## Output-hash lookups {#output-hash-lookups}
 
@@ -39,7 +39,7 @@ navio-cli gettxfromoutputhash "<outputhash>"
 
 ### `-outindex` and `getoutputinfo`
 
-On master (after v0.2.2), the optional `-outindex` index (default off, incompatible with pruning) maps each output hash to the block, transaction and output position that created it and, once spent, to the spending position. It is built in the background and reported by `getindexinfo` as `outindex`. With it enabled and synced, `gettxfromoutputhash` answers confirmed outputs, spent or not, from the index.
+New in v0.3.0: the optional `-outindex` index (default off, incompatible with pruning) maps each output hash to the block, transaction and output position that created it and, once spent, to the spending position. It is built in the background and reported by `getindexinfo` as `outindex`. With it enabled and synced, `gettxfromoutputhash` answers confirmed outputs, spent or not, from the index.
 
 ```bash
 navio-cli getoutputinfo "<outputhash>"

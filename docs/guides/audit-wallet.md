@@ -127,10 +127,10 @@ navio-cli -rpcwallet=audit getblsctbalance
 
 What to expect:
 
--   **Invalid keys are refused up front** (master, after v0.2.2): an audit key whose view-key half is zero or out of range, or whose spend-key half is not a valid point, fails with `Invalid audit key: the view key or the spend key is not a valid key` (`RPC_INVALID_PARAMETER`) and no wallet file is left behind. Earlier releases accepted such keys and then watched the wrong sub-addresses.
+-   **Invalid keys are refused up front** (new in v0.3.0): an audit key whose view-key half is zero or out of range, or whose spend-key half is not a valid point, fails with `Invalid audit key: the view key or the spend key is not a valid key` (`RPC_INVALID_PARAMETER`) and no wallet file is left behind. Earlier releases accepted such keys and then watched the wrong sub-addresses.
 -   **The wallet is keyless.** It holds only the audit key. `getblsctseed` fails with `RPC_WALLET_BLANK` (-37), `dumpmnemonic` with `RPC_WALLET_ERROR` (-4), `signblsctrawtransaction` is refused, and `createwallet` refuses a `passphrase` because there are no private keys to encrypt.
--   **`disable_private_keys=true` without an audit key** creates a wallet that holds no keys at all (master). Earlier releases generated a random private seed for it, which still loads but warns "Private keys detected in wallet … with disabled private keys". On such a keyless wallet `getblsctauditkey` fails with `RPC_WALLET_BLANK` (-37).
--   **Exchange key handling.** Export the audit key from the spend wallet and import it here; do not pass the master seed or mnemonic together with `disable_private_keys=true`, which `createwallet` refuses on master.
+-   **`disable_private_keys=true` without an audit key** creates a wallet that holds no keys at all (new in v0.3.0). Earlier releases generated a random private seed for it, which still loads but warns "Private keys detected in wallet … with disabled private keys". On such a keyless wallet `getblsctauditkey` fails with `RPC_WALLET_BLANK` (-37). To turn a wallet created the old way into a truly watch-only one, export its audit key with `getblsctauditkey` and create a new wallet from it with `createwallet blsct=true disable_private_keys=true seed=<audit key>`. The old wallet file still holds a seed that can spend its funds, so keep it as securely as any spending wallet.
+-   **Exchange key handling.** Export the audit key from the spend wallet and import it here; do not pass the master seed or mnemonic together with `disable_private_keys=true`, which `createwallet` refuses from v0.3.0.
 -   `getblsctbalance`, `gettokenbalance` and `getnftbalance` include watch-only outputs by default on a watch-only wallet.
 
 ## Addresses the audit wallet can see

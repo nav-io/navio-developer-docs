@@ -62,7 +62,7 @@ Only transactions signed under the collection's token-signing key can mint into 
 
 `minttoken` / `mintnft`:
 
-1.  Takes `tokenId`, destination address, and amount or nft_id.
+1.  Takes `tokenId`, destination address, and amount or nft_id. The minted amount comes from the mint predicate, so the mint spends native NAV inputs only, for its fee (from v0.3.0 the wallet no longer adds the issuer's existing coins of the token).
 2.  Builds a BLSCT output addressed to the destination's sub-address, with `token_id` set.
 3.  Signs with the collection's token-signing key (proves authorisation) + the usual per-input and balance signatures.
 4.  Broadcasts. The new output is now spendable by the recipient.
@@ -73,7 +73,7 @@ Transferring tokens uses exactly the same mechanism as NAV — stealth address, 
 
 -   The output's `token_id` is the collection id (for fungible) or full 80-hex NFT id (for non-fungible).
 -   Change outputs also carry the same `token_id`.
--   The balance proof partitions inputs and outputs by `token_id`: for each asset present, in − out − fee = 0 (fees are NAV-only; token outputs must sum to zero change).
+-   The balance proof partitions inputs and outputs by `token_id`: for each asset present, in − out − fee = 0 (fees are NAV-only; token outputs must sum to zero change). From v0.3.0 the mempool also rejects a transaction whose fee output pays a non-zero amount of a token (`non-native-fee-output`); block validity is unchanged.
 
 `sendtokentoblsctaddress` and `sendnfttoblsctaddress` in the [BLSCT RPC](../rpc/blsct.md) handle this automatically.
 

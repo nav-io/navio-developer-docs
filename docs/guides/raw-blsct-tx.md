@@ -34,7 +34,7 @@ Each output can also carry:
 | Field | Meaning |
 | ----- | ------- |
 | `memo` | Text the recipient can read |
-| `token_id` | Token to send: the 64-hex token id, or `<token id>#<subid>` for an NFT (on master, after v0.2.2); empty for NAV |
+| `token_id` | Token to send: the 64-hex token id, or `<token id>#<subid>` for an NFT (new in v0.3.0); empty for NAV |
 | `script` | Raw output script hex |
 | `type` | `"atomic_swap"` for an HTLC output (with `address_a`, `address_b`, `hash`, `locktime`), see [atomic swaps](atomic-swaps.md) |
 

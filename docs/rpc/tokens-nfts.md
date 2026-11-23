@@ -17,7 +17,7 @@ Both live on the BLSCT transaction format with confidential amounts. An NFT effe
 -   **NFT** — a collection id plus a numeric `nft_id` (subid). The mint and send commands take them as two arguments (`token_id`, `nft_id`). Commands that take a single token string — the `token_id` of a [`createblsctrawtransaction`](blsct.md#createblsctrawtransaction) output and the RFQ / standing-order commands on the [P2P messaging page](p2pmsg.md) — write an NFT as `<64-hex token id>#<subid>`, for example `ba12…7edd#42`, the form `listorders` prints. The subid is plain decimal. NAV is the empty string.
 
 !!! info "Version note"
-    The `#<subid>` form in `createblsctrawtransaction` and the RFQ / order RPCs is on master, after v0.2.2. Earlier releases accept only a 64-hex token id there, so they cannot name an NFT.
+    The `#<subid>` form in `createblsctrawtransaction` and the RFQ / order RPCs is new in v0.3.0. v0.2.2 and earlier releases accept only a 64-hex token id there, so they cannot name an NFT.
 
 The SDK normalises both forms — pass either `tokenId: '<64-hex>'` (collection, fungible send) or `tokenId: '<80-hex>'` (specific NFT: collection id followed by the 16-hex subid) or `collectionTokenId + nftId` to [`NavioClient.sendNft`](../sdk/sending.md#send-nft).
 
@@ -64,6 +64,11 @@ navio-cli mintnft <collection_token_id> <nft_id> <bech32m_address> '{"name":"Mon
 ```
 
 `nft_id` must not already be minted in the collection.
+
+!!! info "Mint behaviour in v0.3.0"
+    -   `minttoken` and `mintnft` spend **native NAV coins only**, for the fee. Earlier releases also added every coin of the minted token (or, for an NFT mint, of that exact NFT id) the issuer held as inputs and returned it as change, so while such a mint was unconfirmed, or if it was never mined, `gettokenbalance` could report 0.
+    -   Two mints that are each valid but together exceed the token's supply cap no longer stop block production: the block template includes one and skips the other. After a block reaches the cap, the mempool evicts the remaining mints, and the issuer's wallet marks them conflicted so their coins come back without `abandontransaction`.
+    -   Fees are paid in NAV. The mempool rejects a transaction whose fee output pays a token (`non-native-fee-output`), and a transaction with no inputs (`blsct-vin-empty`). See [Mempool policy](../concepts/p2p-protocol.md#mempool-policy).
 
 ## Query balances
 
