@@ -20,6 +20,9 @@ Verifies a BLS12-381 signature against a public key. Replaces `OP_CHECKSIG` in B
 | Signature      | 48 bytes, compressed $G_1$ signature              |
 | Return value   | `1` (true) on valid signature, `0` otherwise     |
 
+!!! info "Relay limit (v0.3.0)"
+    Each `OP_BLSCHECKSIG` call adds a pair to the transaction's aggregate BLS signature check. From v0.3.0 mempool acceptance refuses a BLSCT transaction whose input scripts make more than **16 + 2 per input** such calls, with reject reason `too-many-bls-signature-pairs`. This is policy, not consensus: a coin locked to a script that needs more calls is still valid to spend in a block, but such a spend is not accepted into the mempool or relayed, so keep scripts within the bound.
+
 The signature is pulled from the scriptSig / witness of the spending input; the opcode itself consumes the public key from the stack and pushes a boolean.
 
 Usage pattern in an HTLC:

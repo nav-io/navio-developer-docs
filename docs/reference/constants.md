@@ -8,7 +8,7 @@ Cross-reference table. Authoritative core values live in [`src/kernel/chainparam
 | ------------ | ------------------------ | ----------- | ------------------------- |
 | mainnet      | 48470                    | 48471       | 50001 / 50002 / 50004     |
 | testnet      | 33670 (SDK P2P: 43670)  | 33677       | 40001 / 40002 / 40004     |
-| signet       | 38333                    | 48487       | (per signet)              |
+| signet       | 48488 (v0.3.0+; 38333 before) | 48487  | (per signet)              |
 | regtest      | 18444                    | 48486       | n/a                       |
 | blsctregtest | 18444                    | 48484       | n/a                       |
 
@@ -18,7 +18,7 @@ Cross-reference table. Authoritative core values live in [`src/kernel/chainparam
 | ------------ | ----------------- |
 | mainnet      | `bd 5f c3 00`     |
 | testnet      | `24 67 d2 c1`     |
-| signet       | (per signet)      |
+| signet       | first 4 bytes of the serialized challenge's sha256d |
 | regtest      | `fd bf 9f fb`     |
 | blsctregtest | `fd bf 9f fb`     |
 
@@ -32,11 +32,11 @@ Core `naviod` chainparams currently expose these BLSCT HRPs:
 | ------------ | -------- | -------------- | ----- |
 | mainnet      | `nav`    | `nav1q9rh…`    | BLSCT active |
 | testnet      | `tnv`    | `tnv1q9rh…`    | BLSCT active |
-| signet       | `nav`    | n/a            | Plain signet is not a BLSCT chain |
+| signet       | `snv`    | `snv1q9rh…`    | BLSCT active from v0.3.0 (v0.2.2: `nav`, BLSCT off) |
 | regtest      | `rnv`    | n/a            | Plain regtest is not a BLSCT chain |
 | blsctregtest | `rnv`    | `rnv1q9rh…`    | BLSCT-active local dev chain |
 
-Standalone `navio-blsct` exposes different Signet / Regtest HRPs (`snv`, `rnav`) in `src/blsct/key_io.h`; see [BLSCT lib → network configuration](../blsct-lib/network.md).
+Standalone `navio-blsct` takes its HRPs from `src/blsct/key_io.h` (`nav`, `tnv`, `snv`, `rnv`), which match the core chainparams above from v0.3.0; see [BLSCT lib → network configuration](../blsct-lib/network.md).
 
 ## Denomination
 
@@ -48,7 +48,7 @@ Standalone `navio-blsct` exposes different Signet / Regtest HRPs (`snv`, `rnav`)
 | Parameter            | Value |
 | -------------------- | ----- |
 | Genesis client       | `0.1.0` (first release; activated mainnet) |
-| Latest release       | `0.2.2` (2026-09-27) |
+| Latest release       | `0.2.2` (2026-09-27); `0.3.0` in preparation |
 | Genesis hash         | `0af3c23ae1ac4910693b7187ac61641d16d1cf49cba7acf8649d48e831d86b13` |
 | Merkle root          | `96f8dfcc3c433012bc9d4b42e85fe543936609f87fce2cc9d5484383ee2f9aaf` |
 | Genesis time         | `1782910800` (2026-07-01 13:00 UTC) |
@@ -103,7 +103,7 @@ Since navio-core **0.1.3** ([PR #303](https://github.com/nav-io/navio-core/pull/
 
 | Network      | Consensus        | Notes |
 | ------------ | ---------------- | ----- |
-| signet       | non-BLSCT signet | `fBLSCT = false`; `nDefaultPort = 38333` |
+| signet       | BLSCT + PoPS, signed blocks (v0.3.0+) | `fBLSCT = true`; blocks must satisfy `-signetchallenge` (required); `nLastPOWHeight = 1000`, `nPosTargetSpacing = 60 s`, `nBLSCTBlockReward = 4 NAV`, `nPePoSMinStakeAmount = 10,000 NAV`, `nDefaultPort = 48488`. v0.2.2: non-BLSCT, port 38333 |
 | regtest      | plain regtest    | `fBLSCT = false`; instant local mining |
 | blsctregtest | BLSCT + PoPS     | `nPePoSMinStakeAmount = 100 NAV`, `nLastPOWHeight = 25000`, `nBLSCTBlockReward = 4 NAV`, `nPosTargetSpacing = 60 s` |
 
@@ -165,7 +165,7 @@ Applies to the BLSCT / PoPS chains only: mainnet, testnet, and `blsctregtest`.
 | Network | Seed hostnames                                    |
 | ------- | ------------------------------------------------- |
 | testnet | none built in; connect with `addnode=testnet.nav.io` / `testnet2.nav.io` |
-| signet  | none (custom signets: `-signetseednode`)           |
+| signet  | none (`-signetseednode`)                           |
 | mainnet | DNS seed `seed.nav.io`; fixed bootstrap seed `blocks.nav.io` (`168.119.249.67:48470`) |
 
 ## Default datadir paths
@@ -204,6 +204,10 @@ Navio-specific bits use the experiment range (24–31). See [P2P protocol → Se
 | `outkeys` reply cap (`-outkeysmaxbytes`) | 4,000,000 bytes (first block always sent) |
 | `wsendpoint` URL max | 256 bytes |
 | WebSocket upgrade request / frame payload max | 8 KiB / 4 MiB |
+| Header work-rate factor (`HeadersWorkRateLimit::MAX_RATE_FACTOR`, v0.3.0) | 4× the node's recent rate |
+| Header work-rate reference (`REFERENCE_INTERVALS`, v0.3.0) | last 10 PoS retarget intervals |
+| Deep-fork depth for inbound header peers (`ANTI_DOS_FORK_DEPTH`, v0.3.0) | 144 blocks |
+| `OP_BLSCHECKSIG` calls per BLSCT tx, relay policy (`MAX_SCRIPT_BLS_CHECKS_BASE` + `_PER_INPUT`, v0.3.0) | 16 + 2 per input |
 
 ## p2pmsg constants
 
@@ -221,3 +225,4 @@ Navio-specific bits use the experiment range (24–31). See [P2P protocol → Se
 | Cover pool target / max / max per aggregate | 20 / 512 / 16 candidates |
 | Cover ratio (`COVER_INPUT_RATIO`) | 1 cover per 4 own inputs |
 | Candidate pull interval | 60 s |
+| Min confirmations of a served candidate's coin (`SERVE_MIN_DEPTH`, v0.3.0) | 2 |

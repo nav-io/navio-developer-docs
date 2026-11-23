@@ -208,6 +208,10 @@ Batch form of `get_output`, added 2026-10-27. Takes up to **250** output hashes 
 
 If the response would exceed `MAX_SEND` it is cut short; the client asks again for the hashes past the end of the returned list. Its bandwidth is billed at 10% of the normal cost, so a wallet catching up on thousands of owned outputs (a staking wallet gains one per staked block) stays under the session cost limits. Navio Electrum 4.9.11+ uses it when the server supports it, and falls back to `get_output` otherwise.
 
+### Header sync cost
+
+Since 2026-11-04 the fork prices `blockchain.block.headers` like its other sync methods: **count/500** plus **10%** of the response's bandwidth, about 10 per 2016-header chunk instead of the stock count/50 plus full bandwidth (about 105). A new wallet that downloads every header, several chunks at a time, therefore stays under `COST_SOFT_LIMIT` instead of being throttled until its requests time out. The bandwidth discount (for headers and for `get_outputs`) is applied right after the response is billed, so it also holds for a fresh session whose cost is still near zero.
+
 ### RFQ bridge {#rfq-bridge}
 
 The fork bridges light wallets to the daemon's [encrypted p2p messaging](../concepts/p2p-messaging.md) RFQ and swap RPCs, so [navio-sdk trading](../sdk/trading.md) works over Electrum. The daemon must have p2pmsg enabled.

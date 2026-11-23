@@ -38,7 +38,7 @@ Navio does **not** ship a `getstakinginfo` RPC. Verify the staker is functioning
 -   The `navio-staker` process's own stdout/stderr — it logs each template poll, eligibility check, and submit result.
 -   `navio-cli listtransactions "*" 50 0 true | jq '[.[] | select(.category == "stake")] | length'` — count of recent stake rewards received by this wallet.
 -   Block-height advancement at the expected rate (~120 s on mainnet and testnet).
--   The staker's own log for connection backoff: `Lost connection to the node` / `Reconnected to the node after N failed attempt(s)` (next release). Operators in `-delegated` mode can watch the `-statsfile` JSON.
+-   The staker's own log for connection backoff: `Lost connection to the node` / `Reconnected to the node after N failed attempt(s)` (new in v0.3.0). Operators in `-delegated` mode can watch the `-statsfile` JSON.
 
 ### Peer services
 

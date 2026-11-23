@@ -28,6 +28,9 @@ See the [p2p encrypted messaging concept page](../concepts/p2p-messaging.md) for
 !!! note "Message store cursors"
     When the user-message store is enabled (`-p2pmsgstoresize` above 0), `getp2pmsginfo` returns a `store` object with `entries`, `bytes`, `last_id` and `undecodable`. `undecodable` counts messages on disk that this node cannot read; they are not returned by `listp2pmsgs` and not counted in `entries` or `bytes`. `clearp2pmsgs` returns the number of messages it removed, including undecodable ones in its range, so it can be larger than what `listp2pmsgs` showed. To drop only what you have read, pass the highest id `listp2pmsgs` returned. `0`, the default, drops everything.
 
+!!! note "Cover candidates (v0.3.0)"
+    `replycandidate` also returns `hex`, the serialized candidate it sent. It builds the candidate only from a NAV coin with at least 2 confirmations, and otherwise fails with "No NAV coin with 2 confirmations free to build a candidate from"; the automatic serving loop (`-servecandidates`) applies the same rule. A received candidate is verified before it enters the pool (see [Cover-traffic aggregation](../concepts/p2p-messaging.md#cover-traffic-aggregation)).
+
 ---
 
 ### `getp2pmsginfo`

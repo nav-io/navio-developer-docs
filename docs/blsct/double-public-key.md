@@ -32,7 +32,7 @@ Navio wraps the 96-byte DPK in [bech32m](https://github.com/bitcoin/bips/blob/ma
 
 With:
 
--   **HRP** — `nav` (mainnet), `tnv` (testnet), `snv` (signet), `rnav` (regtest). Defined in [`src/blsct/key_io.h`](https://github.com/nav-io/navio-core/blob/master/src/blsct/key_io.h) under `blsct::bech32_hrp`.
+-   **HRP** — `nav` (mainnet), `tnv` (testnet), `snv` (signet), `rnv` (regtest and `blsctregtest`). Defined in [`src/blsct/key_io.h`](https://github.com/nav-io/navio-core/blob/master/src/blsct/key_io.h) under `blsct::bech32_hrp`.
 -   **Witness version** — *not used.* Unlike Bitcoin SegWit bech32 encodings, Navio's `bech32_mod` does **not** prepend a witness-version byte. The full 96-byte DPK is expanded into 154 × 5-bit groups and placed directly in the data part.
 -   **Data part** — 154 characters encoding the 96-byte DPK (5-bit groups).
 -   **Checksum** — bech32m (BIP-350), with a modified polynomial generator suited to the 154-character payload (see [`bech32_mod_gen_poly.md`](https://github.com/nav-io/navio-core/blob/master/src/blsct/bech32_mod_gen_poly.md)).
@@ -43,7 +43,7 @@ A typical testnet address:
 tnv1q9rh…<~160 chars>…q8u30w
 ```
 
-Mainnet addresses start with `nav1…`, signet with `snv1…`, regtest with `rnav1…`.
+Mainnet addresses start with `nav1…`, signet with `snv1…`, regtest with `rnv1…`.
 
 ### `bech32_mod`
 

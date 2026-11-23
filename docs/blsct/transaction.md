@@ -103,7 +103,7 @@ The block assembler applies the same merge to all transactions of a block (`[coi
 
 ### Wallet output shape
 
-With `-blsctpadoutputs=1` (default on master, next release) ordinary wallet sends always carry recipient + change outputs; when the inputs match amount + fee exactly, the change is a range-proofed **zero-value** output with memo `"Change"`, so every ordinary send has the same output count. Stake/unstake, token create/mint, NFT change and fee-0 aggregation candidates keep their own shapes. Library builders (`TxFactory` used directly, `libblsct`) do not pad unless asked.
+With `-blsctpadoutputs=1` (default on, new in v0.3.0) ordinary wallet sends always carry recipient + change outputs; when the inputs match amount + fee exactly, the change is a range-proofed **zero-value** output with memo `"Change"`, so every ordinary send has the same output count. Stake/unstake, token create/mint, NFT change and fee-0 aggregation candidates keep their own shapes. Library builders (`TxFactory` used directly, `libblsct`) do not pad unless asked.
 
 ## Size budget (typical)
 

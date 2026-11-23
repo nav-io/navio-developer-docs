@@ -70,18 +70,33 @@ Source: [`src/rpc/protocol.h`](https://github.com/nav-io/navio-core/blob/master/
 
 | Message (prefix) | Code | Meaning |
 | ---------------- | ---- | ------- |
-| `This network only supports confidential (BLSCT) transactions; …` | `-1` / `-4` | A transparent-only RPC on mainnet, testnet or `blsctregtest`. The message names the BLSCT alternative. See [BLSCT-only networks](../rpc/index.md#blsct-only-networks) |
+| `This network only supports confidential (BLSCT) transactions; …` | `-1` / `-4` | A transparent-only RPC on mainnet, testnet, `blsctregtest` or (v0.3.0+) signet. The message names the BLSCT alternative. See [BLSCT-only networks](../rpc/index.md#blsct-only-networks) |
 | `This RPC does not support BLSCT (confidential) wallets: …` | `-4` | A transparent spend RPC called on a BLSCT wallet |
-| `Invalid audit key: the view key or the spend key is not a valid key` | `-8` | `createwallet` `seed` of 160 hex characters that is not a valid audit key (master) |
+| `Invalid audit key: the view key or the spend key is not a valid key` | `-8` | `createwallet` `seed` of 160 hex characters that is not a valid audit key (new in v0.3.0) |
 | `Seed must be 64 (master) or 160 (view) characters long` | `-4` | `createwallet` `seed` of the wrong length |
-| `Cannot combine 'blank' with 'seed', 'mnemonic' or 'mnemonic_passphrase'. …` | `-8` | Master |
-| `Cannot combine 'disable_private_keys' with a master seed or 'mnemonic', …` | `-8` | Master; pass an audit key instead |
+| `Cannot combine 'blank' with 'seed', 'mnemonic' or 'seedphrase_extension'. …` | `-8` | New in v0.3.0 |
+| `Cannot combine 'disable_private_keys' with a master seed or 'mnemonic', …` | `-8` | New in v0.3.0; pass an audit key instead |
+| `Parameter seedphrase_extension specified multiple times (also as its alias mnemonic_passphrase)` | `-8` | `createwallet` given both names of the extension (v0.3.0) |
+| `Wallet already loading.` | `-4` | `loadwallet`, `createwallet` or `restorewallet` of a wallet whose creation or restore is still running (v0.3.0) |
 | `Wallet has no BLSCT seed (private keys are disabled)` | `-37` (`getblsctseed`), `-4` (`dumpmnemonic`) | Watch-only wallet |
-| `Wallet has no BLSCT audit key (…)` | `-37` | `getblsctauditkey` on a keyless wallet (master; earlier releases returned `-1`) |
+| `Wallet has no BLSCT audit key (…)` | `-37` | `getblsctauditkey` on a keyless wallet (new in v0.3.0; earlier releases returned `-1`) |
 | `<arg> must be a 64-hex token id, followed by #<subid> for an NFT, or empty for NAV` | `-8` | Malformed token argument in the RFQ / order RPCs or a `createblsctrawtransaction` `token_id` |
-| `RFQ has a quote being accepted; …` | `-1` | `cancelrfq` while an accept is in flight (master) |
-| `Error: This wallet already uses SQLite` | `-4` | `migratewallet`: every navio wallet is already SQLite |
-| `Method not found` | `-32601` | Calling a removed RPC (PSBT, external signer, `listblscttransactions`) |
+| `RFQ has a quote being accepted; …` | `-1` | `cancelrfq` while an accept is in flight (new in v0.3.0) |
+| `Cannot scan for a BLSCT address: …` | `-8` | `scantxoutset` / `scanblocks` with `addr()` of a BLSCT address (new in v0.3.0) |
+| `Signet blocks must be signed: pass the signetkey argument` | `-8` | `generatetoblsctaddress` on signet without `signetkey` (v0.3.0); `Invalid signetkey` is `-5`, and `signetkey is only used on signet` is `-8` |
+| `No NAV coin with 2 confirmations free to build a candidate from` | `-4` | `replycandidate` with no coin it may serve (v0.3.0) |
+| `Error: This wallet already uses SQLite` | `-4` | `migratewallet` in v0.2.2: every navio wallet is already SQLite. The RPC is removed in v0.3.0 |
+| `Method not found` | `-32601` | Calling a removed RPC (PSBT, external signer, `migratewallet`, `listblscttransactions`) |
+
+### Mempool reject reasons (v0.3.0)
+
+`sendrawtransaction` and `testmempoolaccept` report these as the reject reason (`RPC_VERIFY_REJECTED`, `-26`, for `sendrawtransaction`). They are relay policy; block validity is unchanged. See [P2P protocol → Mempool policy](../concepts/p2p-protocol.md#mempool-policy).
+
+| Reason | Meaning |
+| ------ | ------- |
+| `non-native-fee-output` | A BLSCT fee output pays a non-zero value in a token other than NAV |
+| `blsct-vin-empty` | A BLSCT transaction with no inputs |
+| `too-many-bls-signature-pairs` | The input scripts make more `OP_BLSCHECKSIG` calls than 16 + 2 per input |
 
 ## SDK errors
 

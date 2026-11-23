@@ -7,7 +7,7 @@ See [Concepts → Networks](../concepts/networks.md) for ports, magic bytes, and
 ```bash
 naviod                 # mainnet (default)
 naviod -testnet        # current public testnet (testnet7)
-naviod -signet         # signet
+naviod -signet -signetchallenge=<hex>   # signet (v0.3.0+: BLSCT, challenge required)
 naviod -regtest        # local regtest
 naviod -blsctregtest   # local BLSCT / PoPS regtest
 ```
@@ -17,8 +17,8 @@ Chain selection drives:
 -   Datadir subdirectory (`testnet7/`, `signet/`, `regtest/`, `blsctregtest/`).
 -   Genesis block and finality checkpoints (the Bitcoin-era `-checkpoints` data was removed).
 -   P2P port, RPC port, magic bytes.
--   Built-in peer seeds: mainnet has `seed.nav.io` plus one fixed seed; testnet and the default signet have none, so add peers with `addnode=` (see [Networks → Bootstrap nodes](../concepts/networks.md#bootstrap-nodes)).
--   BLSCT address HRP on BLSCT-enabled chains (`nav` / `tnv` / `rnv`).
+-   Built-in peer seeds: mainnet has `seed.nav.io` plus one fixed seed; testnet and signet have none, so add peers with `addnode=` (signet: also `-signetseednode`) (see [Networks → Bootstrap nodes](../concepts/networks.md#bootstrap-nodes)).
+-   BLSCT address HRP on BLSCT-enabled chains (`nav` / `tnv` / `snv` for signet from v0.3.0 / `rnv`).
 -   BLSCT chain context — affects address encoding, token-id padding, consensus rules.
 
 ## Datadir layout

@@ -25,23 +25,24 @@ Key derivation uses **only the first 24 words**, so the derived wallet is byte-i
 
 -   dropping the two extra words restores the same wallet with a full scan;
 -   any BIP-39-compatible wallet can import the 24-word base;
--   the [mnemonic passphrase](#mnemonic-passphrase-the-25th-word) composes normally with the base words.
+-   the [seedphrase extension](#seedphrase-extension) composes normally with the base words.
 
 Restoring from 26 words starts the scan one safety margin before the encoded week — in Navio Electrum and the SDK this maps to a block height via the network's genesis time; in navio-core it sets the wallet birth time so rescans skip older blocks.
 
 Implemented in Navio Electrum v4.9.5+, navio-sdk v0.1.29+, and navio-core ([PR #340](https://github.com/nav-io/navio-core/pull/340)). Shared test vector: entropy `000102…1f` at `t=1783000000` appends `addict render` and decodes to birthday `1782950400`.
 
-### Mnemonic passphrase (the "25th word")
+### Seedphrase extension (the "25th word") {#seedphrase-extension}
 
-navio-core can optionally extend a BIP-39 mnemonic with a passphrase when deriving the wallet keys — `createwallet`'s `mnemonic_passphrase` argument, or `navio-wallet create -mnemonicpassphrase`. The seed is stretched with the standard BIP-39 KDF (PBKDF2-HMAC-SHA512, 2048 iterations, salt `"mnemonic" + passphrase`).
+navio-core can optionally extend a BIP-39 mnemonic with a **seedphrase extension** (the BIP-39 passphrase) when deriving the wallet keys — `createwallet`'s `seedphrase_extension` argument, or `navio-wallet create -seedphraseextension`. Before v0.3.0 these were named `mnemonic_passphrase` and `-mnemonicpassphrase`; v0.3.0 still accepts the old names as deprecated aliases. Navio Electrum uses the same term since 4.9.16. The seed is stretched with the standard BIP-39 KDF (PBKDF2-HMAC-SHA512, 2048 iterations, salt `"mnemonic" + extension`). The extension is unrelated to the passphrase that encrypts the wallet file.
 
--   The passphrase is **never stored** — `dumpmnemonic` returns only the mnemonic. The same passphrase must be re-supplied to restore the wallet, so it acts as a second factor: the mnemonic alone is not enough.
--   An **empty** passphrase reproduces the legacy derive-from-entropy path, so mnemonics created without one restore unchanged.
--   Different passphrases over the same mnemonic yield entirely different wallets (plausible-deniability decoys).
--   No NFKD normalization is applied, so since v0.2.2 navio-core requires an **ASCII** passphrase when creating a wallet. Restoring with a non-ASCII passphrase is still accepted, with a warning, so wallets created that way stay recoverable.
+-   The extension is **never stored** — `dumpmnemonic` returns only the mnemonic. The same extension must be re-supplied to restore the wallet, so it acts as a second factor: the mnemonic alone is not enough.
+-   An **empty** extension reproduces the legacy derive-from-entropy path, so mnemonics created without one restore unchanged.
+-   Different extensions over the same mnemonic yield entirely different wallets (plausible-deniability decoys).
+-   No NFKD normalization is applied, so since v0.2.2 navio-core requires an **ASCII** extension when creating a wallet. Restoring with a non-ASCII extension is still accepted, with a warning, so wallets created that way stay recoverable.
+-   The rename in v0.3.0 does not change key derivation: the same mnemonic and extension derive the same keys under either name.
 
 !!! info "Availability"
-    Shipped in navio-core **v0.1.4**. The `navio-sdk` KeyManager does not expose a passphrase parameter yet. See the [createwallet RPC notes](../rpc/categories/wallet.md#mnemonic-passphrase).
+    Shipped in navio-core **v0.1.4** (as `mnemonic_passphrase`), renamed in **v0.3.0**. The `navio-sdk` KeyManager does not expose an extension parameter yet. See the [createwallet RPC notes](../rpc/categories/wallet.md#seedphrase-extension).
 
 ## HD chain structure
 
@@ -122,7 +123,7 @@ navio-cli -named createwallet wallet_name="audit" seed="<160-hex audit key>"
 
 Or offline with `navio-wallet -wallet=audit -blsct -seed=<160-hex audit key> create`.
 
-The resulting wallet holds only the audit key: it has no seed or mnemonic to export and cannot sign. On master (after v0.2.2):
+The resulting wallet holds only the audit key: it has no seed or mnemonic to export and cannot sign. New in v0.3.0:
 
 -   An audit key whose view-key half is zero or not below the group order, or whose spend-key half is not a valid G1 point or is the identity, is refused with `Invalid audit key` before any wallet file is created.
 -   `createwallet` with `disable_private_keys=true` and no audit key creates a wallet with no keys at all. Earlier releases generated a random private seed for such a wallet.

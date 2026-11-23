@@ -2,7 +2,7 @@
 
 Goal: create a wallet, back up its mnemonic, restore it from the mnemonic on another machine, and generate receiving addresses — using only `navio-cli` against a running `naviod`.
 
-Verified against navio-core **v0.2.2** and current master. All commands below are BLSCT wallet commands — the default and standard wallet type on mainnet.
+Verified against navio-core **v0.2.2** and the v0.3.0 release candidate (master). Behaviour marked *new in v0.3.0* is not in v0.2.2. All commands below are BLSCT wallet commands — the default and standard wallet type on mainnet.
 
 ## Prerequisites
 
@@ -32,11 +32,13 @@ navio-cli createwallet "main"
 !!! danger "The mnemonic is shown only this once"
     The 26 words in the `createwallet` response are the master backup of the wallet. Write them down **now**, offline (paper or metal). They are not shown again on wallet load — though you can re-dump them later with `dumpmnemonic` while the wallet is loaded and unlocked.
 
-To create the wallet with a [BIP-39 mnemonic passphrase](../rpc/categories/wallet.md#mnemonic-passphrase) (the "25th word", extending the seed derivation — v0.1.4+). The passphrase must be ASCII:
+To create the wallet with a [seedphrase extension](../rpc/categories/wallet.md#seedphrase-extension) (a BIP-39 passphrase, the "25th word", extending the seed derivation — v0.1.4+). The extension must be ASCII:
 
 ```bash
-navio-cli -named createwallet wallet_name="main" mnemonic_passphrase="my secret passphrase"
+navio-cli -named createwallet wallet_name="main" seedphrase_extension="my secret extension"
 ```
+
+The argument is named `seedphrase_extension` from v0.3.0. v0.2.2 and earlier call it `mnemonic_passphrase`, which v0.3.0 still accepts as a deprecated alias.
 
 To encrypt the wallet at creation, pass a passphrase:
 
@@ -47,7 +49,7 @@ navio-cli -named createwallet wallet_name="main" passphrase="correct horse batte
 An existing unencrypted wallet can be encrypted later with `encryptwallet`.
 
 !!! note "Two different passphrases"
-    `passphrase` encrypts the wallet file on this machine — it protects the wallet database and is not needed to restore from the mnemonic. `mnemonic_passphrase` changes the key derivation itself (what some wallets call the BIP-39 "extension words" or "25th word") — it **is** required, together with the 24 words, to restore the wallet. They are independent; you can use either or both.
+    `passphrase` encrypts the wallet file on this machine — it protects the wallet database and is not needed to restore from the mnemonic. `seedphrase_extension` changes the key derivation itself (what some wallets call the BIP-39 "extension words" or "25th word") — it **is** required, together with the 24 words, to restore the wallet. They are independent; you can use either or both.
 
 ## 2. Back up / dump the mnemonic
 
@@ -77,7 +79,7 @@ Related backup commands:
 !!! warning "`dumpwallet` does not back up BLSCT keys"
     The legacy `dumpwallet` command exports only transparent (ECDSA) keys and errors out on BLSCT wallets to avoid a false sense of backup. Use `dumpmnemonic` (or `getblsctseed`) plus `backupwallet` instead.
 
-If the wallet was created with a [BIP-39 mnemonic passphrase](../rpc/categories/wallet.md#mnemonic-passphrase), the passphrase is **not stored in the wallet and not included in `dumpmnemonic` output**. Back it up separately — mnemonic + wrong passphrase restores a different (empty) wallet.
+If the wallet was created with a [seedphrase extension](../rpc/categories/wallet.md#seedphrase-extension), the extension is **not stored in the wallet and not included in `dumpmnemonic` output**. Back it up separately — mnemonic + wrong extension restores a different (empty) wallet.
 
 See [Node → Backup & restore](../node/backup.md) for the full backup matrix.
 
@@ -87,15 +89,15 @@ See [Node → Backup & restore](../node/backup.md) for the full backup matrix.
 navio-cli -named createwallet wallet_name="restored" mnemonic="abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire across act action actor actress actual"
 ```
 
-Both the 26-word birthday mnemonic and a plain 24-word BIP-39 mnemonic are accepted. If the original wallet used a mnemonic passphrase, supply it too:
+Both the 26-word birthday mnemonic and a plain 24-word BIP-39 mnemonic are accepted. If the original wallet used a seedphrase extension, supply it too:
 
 ```bash
 navio-cli -named createwallet wallet_name="restored" \
     mnemonic="abandon ability able ..." \
-    mnemonic_passphrase="my secret passphrase"
+    seedphrase_extension="my secret extension"
 ```
 
-Alternatively restore from the raw seed hex: `-named createwallet wallet_name="restored" seed="<64-hex-chars>"` (`seed` and `mnemonic` are mutually exclusive). Don't combine `seed` or `mnemonic` with `blank=true`, or a master seed or mnemonic with `disable_private_keys=true`. On master (after v0.2.2) `createwallet` refuses both; earlier releases created a wallet that did not match what was asked for.
+Alternatively restore from the raw seed hex: `-named createwallet wallet_name="restored" seed="<64-hex-chars>"` (`seed` and `mnemonic` are mutually exclusive). Don't combine `seed` or `mnemonic` with `blank=true`, or a master seed or mnemonic with `disable_private_keys=true`. From v0.3.0 `createwallet` refuses both; earlier releases created a wallet that did not match what was asked for.
 
 ### Rescan for your history
 
@@ -137,9 +139,9 @@ navio-wallet -wallet=audit -blsct -seed=<160-hex audit key> create  # watch-only
 navio-wallet -wallet=offline info
 ```
 
--   `-seed` cannot be combined with `-mnemonic` or `-mnemonicpassphrase`. On master (after v0.2.2) it is checked before the wallet is created: it must be hex, 64 characters for a master seed or 160 for an audit key, and an audit key whose view-key or spend-key half is invalid is refused with "Invalid audit key". Earlier releases could create a wallet with no seed, or with a random seed whose mnemonic was never shown, from a bad value.
--   `-mnemonicpassphrase` must be ASCII for a new wallet. On restore with `-mnemonic`, a non-ASCII passphrase is accepted with a warning.
--   On master (after v0.2.2), `navio-wallet create` exits non-zero when the wallet cannot be created, for example because it already exists. Earlier releases printed the error and exited 0.
+-   `-seed` cannot be combined with `-mnemonic` or `-seedphraseextension`. From v0.3.0 it is checked before the wallet is created: it must be hex, 64 characters for a master seed or 160 for an audit key, and an audit key whose view-key or spend-key half is invalid is refused with "Invalid audit key". Earlier releases could create a wallet with no seed, or with a random seed whose mnemonic was never shown, from a bad value.
+-   `-seedphraseextension` (named `-mnemonicpassphrase` in v0.2.2 and earlier) must be ASCII for a new wallet. On restore with `-mnemonic`, a non-ASCII extension is accepted with a warning. In v0.3.0 `-mnemonicpassphrase` still works as a hidden, deprecated alias that prints a warning; passing both names is an error, and `-noseedphraseextension` / `-nomnemonicpassphrase` are refused.
+-   From v0.3.0, `navio-wallet create` exits non-zero when the wallet cannot be created, for example because it already exists. Earlier releases printed the error and exited 0.
 -   `navio-wallet info` on a new BLSCT wallet shows "HD (hd seed available): no" and "Keypool Size: 0": those fields describe transparent keys only.
 
 ## Quick reference
@@ -162,6 +164,6 @@ navio-cli getnewaddress
 ## Related
 
 -   [Backup & restore](../node/backup.md) — full matrix of what each artifact recovers
--   [Wallet RPC](../rpc/categories/wallet.md) — `createwallet` arguments, mnemonic passphrase details
+-   [Wallet RPC](../rpc/categories/wallet.md) — `createwallet` arguments, seedphrase extension details
 -   [BLSCT commands](../rpc/blsct.md) — `getblsctseed`, `getblsctauditkey`, `setblsctseed`
 -   [Coin swap (Navcoin → Navio)](coin-swap.md) — if you are restoring a wallet to receive swapped coins

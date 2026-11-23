@@ -10,7 +10,7 @@
 | Language             | Package                                                                                | Latest   | Runtime                          | Status     |
 | -------------------- | -------------------------------------------------------------------------------------- | -------- | -------------------------------- | ---------- |
 | TypeScript / JavaScript | [`@nav-io/navio-blsct`](https://www.npmjs.com/package/@nav-io/navio-blsct) (npm)    | 1.3.0 (2026-10-16) | Node.js (native C++) + Browser (WASM) | Shipping |
-| Python               | [`navio-blsct`](https://pypi.org/project/navio-blsct/) (PyPI)                          | 0.0.40 (2026-10-25) | CPython 3.x                 | Shipping   |
+| Python               | [`navio-blsct`](https://pypi.org/project/navio-blsct/) (PyPI)                          | 0.0.41 (2026-11-04) | CPython 3.x                 | Shipping   |
 | C#                   | `NavioBlsct` ([`ffi/csharp`](https://github.com/nav-io/libblsct-bindings/tree/main/ffi/csharp)) | build from source | .NET 8 / .NET 10 / .NET Standard 2.1 | In repo, CI-tested |
 | Rust                 | `navio-blsct` crate ([`ffi/rust`](https://github.com/nav-io/libblsct-bindings/tree/main/ffi/rust)) | build from source | Rust (Linux, macOS, Windows) | In repo, CI-tested |
 
@@ -34,8 +34,43 @@ Track language status in the upstream README: <https://github.com/nav-io/libblsc
 | TS 1.2.0 | TypeScript | Built against navio-core with the supranational/blst backend. |
 | TS 1.3.0 | TypeScript | [Stake delegation](transactions.md#stake-delegation) API for cold staking; `parseDataPredicateData`; `CTxOut.getScriptPubKeyHex()`; `CTx.generate(txIns, txOuts, changeAddr)`; `CTxOut.getSpendingKey()` / `getBlindingKey()` return `Point`. |
 | Python 0.0.40 | Python | Stake-delegation output API (used by Navio Electrum 4.9.10+), DATA predicate payload reader, full `scriptPubKey` reader, change address for `CTx`; `CTxOut` spending / blinding keys are points. |
+| Python 0.0.41 | Python | `set_unsigned_transaction_emit_fee_output` / `get_unsigned_transaction_emit_fee_output` at the SWIG level (`blsct.blsct`), to sign fee-0 aggregation cover candidates without a fee output (used by Navio Electrum 4.9.17+). Built against navio-core `7976768` ([#677](https://github.com/nav-io/navio-core/pull/677)). |
 
-In the repository, the Rust binding also wraps the stake-delegation C API and reads DATA predicate payloads and full `scriptPubKey`s, and the C# binding is tested end to end for cold staking.
+In the repository, the Rust binding also wraps the stake-delegation C API and reads DATA predicate payloads and full `scriptPubKey`s, and the C# binding is tested end to end for cold staking. The TypeScript build scripts in the repository export the emit-fee-output functions too, but no npm release ships them yet (1.3.0 predates them).
+
+## libblsct C API changes in navio-core v0.3.0 {#libblsct-c-api-changes-in-navio-core-v030}
+
+These change `libblsct`'s C header (`src/blsct/external_api/blsct.h`) in navio-core v0.3.0. They matter to anyone who links `libblsct` directly or maintains a binding.
+
+!!! warning "Breaking: explicit message lengths"
+    `build_range_proof`, `sign_message` and `verify_msg_sig` take the message as a pointer **and an explicit `size_t msg_len`** ([#714](https://github.com/nav-io/navio-core/pull/714)). Every consumer and binding must pass the new argument and be rebuilt against the new header.
+
+    ```c
+    BlsctRetVal* build_range_proof(const void* vp_uint64_vec, const BlsctPoint* blsct_nonce,
+                                   const char* blsct_msg, size_t msg_len,
+                                   const BlsctTokenId* blsct_token_id);
+    const BlsctSignature* sign_message(const BlsctScalar* blsct_priv_key,
+                                       const char* blsct_msg, size_t msg_len);
+    bool verify_msg_sig(const BlsctPubKey* blsct_pub_key, const char* blsct_msg, size_t msg_len,
+                        const BlsctSignature* blsct_signature);
+    ```
+
+    -   The message needs no NUL terminator and is never read past `msg_len`. It may be NULL only when `msg_len` is 0; NULL with a non-zero length makes `build_range_proof` return `BLSCT_FAILURE`, `sign_message` return NULL and `verify_msg_sig` return false.
+    -   `sign_message` and `verify_msg_sig` sign and check all `msg_len` bytes, including NUL bytes. Before, a message was cut at its first NUL byte, so a signature over `"ab\0cd"` also verified for `"ab"`.
+    -   `build_range_proof` returns `BLSCT_FAILURE` for a message containing a NUL byte, because amount recovery returns the message as a C string and would cut it there.
+
+    The published bindings (TypeScript 1.3.0, Python 0.0.41) and the repository's current pin (`ffi/navio-core.sha` = `7976768`) predate this change and still use the NUL-terminated signatures. A bindings release that moves its pin to v0.3.0 has to adopt them.
+
+**Fee-0 candidates without a fee output** ([#677](https://github.com/nav-io/navio-core/pull/677), additive). Light wallets can build the 1-input/1-output, fee-0 cover candidates a wallet serving `AGG_ANN` requests sends back:
+
+```c
+void set_unsigned_transaction_emit_fee_output(void* vp_unsigned_transaction, bool emit_fee_output);
+bool get_unsigned_transaction_emit_fee_output(const void* vp_unsigned_transaction);
+```
+
+-   The default is `true`, so signing works as before. `get_…` returns `true` for a NULL handle.
+-   With `false`, `sign_unsigned_transaction` emits neither the `OP_RETURN` fee output nor its fee signature. The inputs must balance the outputs exactly, and signing returns `BLSCT_FAILURE` if the fee is not 0. A candidate with a fee output is rejected by the requester's candidate pool.
+-   `serialize_unsigned_transaction` (and the blobs `createblsctrawtransaction` / `signblsctrawtransaction` exchange) gains format **version 2**, which appends the flag. It is written only when the fee output is off, so every other unsigned transaction keeps the version 1 layout. Decoding rejects unknown format versions instead of misreading them.
 
 ## What all bindings expose
 

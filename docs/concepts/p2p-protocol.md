@@ -1,9 +1,9 @@
 # P2P protocol
 
-Navio speaks the Bitcoin Core P2P protocol (version handshake, `inv`/`getdata`, headers-first sync, BIP152 compact blocks, `addr` gossip) with Navio-specific network magic (see [Networks](networks.md#p2p-wire-protocol-magic)) and a set of extensions for output-centric identity, aggregated blocks, light wallets, browser clients and the [encrypted messaging overlay](p2p-messaging.md). This page lists those extensions as implemented in `src/protocol.h` and `src/net_processing.cpp` on navio-core `master`.
+Navio speaks the Bitcoin Core P2P protocol (version handshake, `inv`/`getdata`, headers-first sync, BIP152 compact blocks, `addr` gossip) with Navio-specific network magic (see [Networks](networks.md#p2p-wire-protocol-magic)) and a set of extensions for output-centric identity, aggregated blocks, light wallets, browser clients and the [encrypted messaging overlay](p2p-messaging.md). This page lists those extensions as implemented in `src/protocol.h` and `src/net_processing.cpp` on navio-core `master`, from which v0.3.0 is being prepared.
 
 !!! note "Version availability"
-    The WebSocket listener (`-p2pwsbind`), p2pmsg envelope v2 (`NODE_P2PMSG_V2`), `NODE_P2PMSG_LEAF` and the envelope archive (`NODE_P2PMSG_ARCHIVE`, `p2pmsgchal`, `getp2pmsgs`/`p2pmsgs`) ship in **v0.2.2**. The rest of the Navio-specific behaviour on this page — serving `getdata` by output id with relay rules applied, compact-block version 3, `getoutkeys`/`outkeys` (`NODE_OUTKEYS`), `NODE_P2P_WS` + `wsendpoint` + `-p2pwsexternal`, the `-whitelist` exclusion for WebSocket peers, confirmation by containment and mempool output-id uniqueness — is merged on `master` and lands in the next release.
+    The WebSocket listener (`-p2pwsbind`), p2pmsg envelope v2 (`NODE_P2PMSG_V2`), `NODE_P2PMSG_LEAF` and the envelope archive (`NODE_P2PMSG_ARCHIVE`, `p2pmsgchal`, `getp2pmsgs`/`p2pmsgs`) ship in **v0.2.2**. The rest of the Navio-specific behaviour on this page — serving `getdata` by output id with relay rules applied, compact-block version 3, `getoutkeys`/`outkeys` (`NODE_OUTKEYS`), `NODE_P2P_WS` + `wsendpoint` + `-p2pwsexternal`, the `-whitelist` exclusion for WebSocket peers, confirmation by containment, mempool output-id uniqueness, the [mempool policy](#mempool-policy) rules and the [header-sync limits](#header-sync-on-proof-of-stake-chains) — is new in **v0.3.0**.
 
 ## Service bits
 
@@ -60,6 +60,28 @@ Missing parents of an orphan transaction are requested by output id with a `MSG_
 ### Mempool uniqueness
 
 Because outputs are identified by content, the mempool rejects (policy, not consensus) a transaction that repeats one of its own spendable outputs, creates a spendable output another mempool transaction already creates (unless it replaces that transaction), or recreates a coin that is still unspent on chain: reject reason `txn-duplicate-output` (`package-duplicate-output` within a package). This mirrors `ConnectBlock`'s `bad-txns-BIP30` rule. Unspendable outputs may repeat.
+
+### Mempool policy {#mempool-policy}
+
+Besides output uniqueness, v0.3.0 adds these relay rules for BLSCT transactions. They are policy only: block validation is unchanged, so a block carrying such a transaction stays valid.
+
+| Reject reason | Result | Rule |
+| ------------- | ------ | ---- |
+| `non-native-fee-output` | `TX_NOT_STANDARD` | A fee output that pays a non-zero value in a token other than NAV. The consensus minimum fee is a native per-weight rate. |
+| `blsct-vin-empty` | `TX_NOT_STANDARD` | A transaction with no inputs. |
+| `too-many-bls-signature-pairs` | `TX_MEMPOOL_POLICY` | The input scripts make more `OP_BLSCHECKSIG` calls than **16 + 2 per input**. Each call adds a pair to the transaction's aggregate signature check. A coin locked to a script with more calls is still spendable in a block, but its spend is not accepted into the mempool or relayed. |
+
+`TX_NOT_STANDARD` does not penalise the sending peer, and `-acceptnonstdtxn` does not lift the first two rules. The block assembler also drops a transaction with a token-denominated fee, and any transaction spending its outputs, before merging the template, and skips a package whose token predicates conflict with the packages already chosen (for example two mints that together exceed a token's supply cap). After a block connects, mempool transactions whose token predicates no longer hold at the new tip are evicted, like transactions whose inputs the block spent; after a reorg, so are those whose predicates the reorg undid.
+
+## Header sync on proof-of-stake chains {#header-sync-on-proof-of-stake-chains}
+
+Bitcoin Core stores a headers chain once it carries enough work (the minimum-work threshold checked during headers presync). A proof-of-stake header carries no proof of work, so on a BLSCT chain work alone is weak evidence. From v0.3.0 the node adds these checks to header sync:
+
+-   **PoS retargets in presync.** Presync and redownload check each header's `nBits` against the proof-of-stake retarget rule past the chain's last proof-of-work height (unchanged between retargets, within a factor of four at them, capped at `posLimit`). v0.2.2 knew only the proof-of-work rule, so a mainnet presync could abort at the first proof-of-stake retarget it crossed.
+-   **Work-rate limit.** A headers chain may not claim work faster than **4×** the node's own recent rate, measured over its last 10 proof-of-stake retarget intervals, over the chain's timespan since it forks from the active chain (plus one retarget timespan of slack), nor within any single retarget timespan. Headers are checked one by one, in presync and for stored batches, so splitting a chain into many messages gains nothing. Header times are clamped to the node's adjusted time plus the maximum future block time. A refused chain is ignored and logged under the `net` debug category ("chain work grows implausibly fast"). The limit is off during initial block download.
+-   **Deep forks only from chosen peers.** On a BLSCT chain, headers that fork more than **144** blocks below the tip are ignored when they come from an inbound peer. Outbound and manual (`-addnode`, `-connect`) peers can still lead the node onto a heavier deep fork.
+
+A node that needs to reorganize onto a deep fork, for example after [a version-mismatch fork](../node/upgrading.md#recovering-from-a-version-mismatch-fork), should connect to an up-to-date node with `addnode`.
 
 ## Aggregated blocks
 

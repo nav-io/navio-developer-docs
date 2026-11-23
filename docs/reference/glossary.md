@@ -100,7 +100,7 @@
 
 **Confirmation by containment** — A mempool or wallet transaction counts as confirmed when a block spends all its inputs and creates all its non-fee outputs, even though its txid is not in the block (it was merged into the block's aggregate).
 
-**Cover candidate** — A fee-0, 1-input/1-output self-spend a node serves over p2pmsg so other wallets can merge it into their sends as decoy traffic (`-servecandidates`, `-aggregatesends`).
+**Cover candidate** — A fee-0, 1-input/1-output self-spend a node serves over p2pmsg so other wallets can merge it into their sends as decoy traffic (`-servecandidates`, `-aggregatesends`). From v0.3.0 it spends a coin with at least 2 confirmations and is verified by the receiving node before it is pooled.
 
 **Fuzzy message detection (FMD)** — Scheme letting a p2pmsg recipient retrieve its messages from an archive with a tunable false-positive rate, without a recipient field on the wire. Uses a clue key, an 83-byte flag per envelope and a secret detection key.
 
@@ -113,3 +113,7 @@
 **Output padding** — Wallet default (`-blsctpadoutputs=1`) that gives every ordinary send a change output, zero-value if necessary, so all sends have the same output count.
 
 **`wsendpoint`** — Message a node with a usable WebSocket listener (`NODE_P2P_WS`) sends after the handshake, carrying the listener's port and, behind a proxy, its public URL.
+
+**Seedphrase extension** — The optional BIP-39 passphrase (the "25th word") combined with a mnemonic when deriving a BLSCT wallet's keys. `createwallet seedphrase_extension` / `navio-wallet -seedphraseextension` from v0.3.0; called `mnemonic_passphrase` / `-mnemonicpassphrase` before. Unrelated to the wallet encryption passphrase. See [wallet formats](../concepts/wallet-formats.md#seedphrase-extension).
+
+**Signet** — From v0.3.0, a BLSCT test network whose blocks must be signed for a challenge script (`-signetchallenge`), for private multi-party test networks. See [Networks → Signet](../concepts/networks.md#signet).

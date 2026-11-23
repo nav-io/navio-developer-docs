@@ -101,7 +101,7 @@ navio-cli getnftbalance <tokenId>
 navio-cli sendnfttoblsctaddress <tokenId> 1 "tnv1...friend..." "Gift"
 ```
 
-`createnft`, `mintnft` and `sendnfttoblsctaddress` return an `outputHash`, which is not a txid; use `gettxfromoutputhash` to find the transaction. Where one string names a single NFT, as in the RFQ RPCs and `createblsctrawtransaction` outputs, it is written `<tokenId>#<nft_id>` (on master, after v0.2.2).
+`createnft`, `mintnft` and `sendnfttoblsctaddress` return an `outputHash`, which is not a txid; use `gettxfromoutputhash` to find the transaction. Where one string names a single NFT, as in the RFQ RPCs and `createblsctrawtransaction` outputs, it is written `<tokenId>#<nft_id>` (new in v0.3.0).
 
 ## Constraints
 

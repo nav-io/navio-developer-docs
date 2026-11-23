@@ -78,9 +78,10 @@ Sampling is skipped entirely (the whole set is the ring) when the set fits withi
 | ------- | ----------------------------------- |
 | mainnet | **10,000 NAV** (`10000 * COIN`)     |
 | testnet | **10,000 NAV**                      |
+| signet (v0.3.0+) | **10,000 NAV**             |
 | `blsctregtest` | **100 NAV**                  |
 
-Source: `kernel/chainparams.cpp`. Plain `signet` and plain `regtest` are not PoPS chains in the current implementation.
+Source: `kernel/chainparams.cpp`. Plain `regtest` is not a PoPS chain, and neither was `signet` before v0.3.0.
 
 ### Block-production parameters
 

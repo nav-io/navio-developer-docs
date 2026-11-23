@@ -2,11 +2,11 @@
 
 BLSCT primitives use a process-global *chain context* that affects:
 
--   Bech32m HRP (`nav` / `tnv` / `snv` / `rnav`).
+-   Bech32m HRP (`nav` / `tnv` / `snv` / `rnv`).
 -   Token-id serialisation padding.
 -   Some consensus-specific constants (activation heights, etc.).
 
-This is the standalone `navio-blsct` mapping from `src/blsct/key_io.h`. Core `naviod` chainparams currently differ for Signet / Regtest paths (`nav`, `rnv`) because plain signet and plain regtest are not BLSCT-enabled in `navio-core`.
+This is the standalone `navio-blsct` mapping from `src/blsct/key_io.h`. It matches `naviod`'s `blsctregtest` (`rnv`) and, from navio-core v0.3.0, its signet (`snv`), which is a BLSCT network from that release on. Plain regtest has BLSCT off in `naviod`.
 
 ## Setting the chain
 

@@ -32,7 +32,9 @@ This page lists the options operators most often need. `naviod -help` (and `-hel
 | ---------------- | ----------------------------------------------------------------- |
 | `chain=`         | `main`, `test`, `signet`, `regtest`, or `blsctregtest`            |
 | `testnet=1`      | Equivalent to `chain=test`                                        |
-| `signet=1`       | Equivalent to `chain=signet` (non-BLSCT; no built-in seeds)       |
+| `signet=1`       | Equivalent to `chain=signet`. From v0.3.0 a BLSCT network with signed blocks that requires `signetchallenge=` (no default network, no built-in seeds; see [Signet](../concepts/networks.md#signet)). Non-BLSCT in v0.2.2 |
+| `signetchallenge=` | Hex challenge script blocks must satisfy; defines the signet (and its magic). Required with `signet=1` from v0.3.0 |
+| `signetseednode=` | `host[:port]` seed node for the signet (repeatable) |
 | `regtest=1`      | Equivalent to `chain=regtest` (non-BLSCT private test chain)      |
 | `blsctregtest=1` | Equivalent to `chain=blsctregtest` (BLSCT / PoPS private test chain) |
 
@@ -57,7 +59,7 @@ This page lists the options operators most often need. `naviod -help` (and `-hel
 | Option                 | Default                 | Description                                                            |
 | ---------------------- | ----------------------- | ---------------------------------------------------------------------- |
 | `listen=`              | `1`                     | Accept inbound connections                                             |
-| `port=`                | `48470` (main) / `33670` (test) / `38333` (signet) / `18444` (regtest, blsctregtest) | P2P port |
+| `port=`                | `48470` (main) / `33670` (test) / `48488` (signet, v0.3.0+; `38333` before) / `18444` (regtest, blsctregtest) | P2P port |
 | `bind=`                |                         | Bind P2P to specific address                                           |
 | `externalip=`          |                         | Advertise this IP to peers                                             |
 | `maxconnections=`      | `125`                   | Max concurrent connections                                             |
@@ -77,7 +79,7 @@ This page lists the options operators most often need. `naviod -help` (and `-hel
 | `i2psam=`              |                         | I2P SAM proxy address                                                  |
 | `cjdnsreachable=`      | `0`                     | Announce CJDNS reachability                                            |
 
-`-checkpoints` was removed together with the Bitcoin-era checkpoint data; setting it only logs a warning. Remove it from old configs.
+`-checkpoints` was removed together with the Bitcoin-era checkpoint data (v0.3.0); setting it only logs the warning "Option '-checkpoints' is set but checkpoints were removed. This option has no effect." Remove it from old configs. The finality checkpoints are unaffected and cannot be turned off.
 
 ### P2P encrypted messaging
 

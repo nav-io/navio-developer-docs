@@ -1,6 +1,6 @@
 # Consensus & supply
 
-Navio's current chainparams define **BLSCT / Proof-of-Private-Stake (PoPS)** on **mainnet** and **testnet**, each preceded by a short bootstrap PoW phase. Plain `signet` and plain `regtest` remain non-BLSCT in the shipping node; local BLSCT testing uses `-blsctregtest`. For the full mathematical + cryptographic treatment see [BLSCT → Proof-of-Private-Stake](../blsct/pops.md).
+Navio's current chainparams define **BLSCT / Proof-of-Private-Stake (PoPS)** on **mainnet** and **testnet**, each preceded by a short bootstrap PoW phase. From v0.3.0 **signet** is a BLSCT / PoPS network with signed blocks too. Plain `regtest` remains non-BLSCT; local BLSCT testing uses `-blsctregtest`. For the full mathematical + cryptographic treatment see [BLSCT → Proof-of-Private-Stake](../blsct/pops.md).
 
 ## What PoPS is (in one paragraph)
 
@@ -10,9 +10,9 @@ Every block is produced by a validator that holds a locked BLSCT output whose Pe
 
 | Property                           | Value (source: `kernel/chainparams.cpp`)        |
 | ---------------------------------- | ----------------------------------------------- |
-| BLSCT / PoPS networks              | mainnet, testnet                               |
+| BLSCT / PoPS networks              | mainnet, testnet; signet from v0.3.0           |
 | Local BLSCT dev chain              | `blsctregtest`                                 |
-| Non-BLSCT chains in current params | signet, regtest                                |
+| Non-BLSCT chains in current params | regtest (and signet in v0.2.2 and earlier)     |
 | Minimum stake (mainnet / testnet)  | **10,000 NAV**                                 |
 | Minimum stake (`blsctregtest`)     | **100 NAV**                                    |
 | Max supply                         | **Uncapped**                                   |
@@ -83,7 +83,7 @@ The genesis coinbase is a **plain unspendable `OP_RETURN`**, *not* a BLSCT outpu
 
 ### Signet / Regtest / BLSCT Regtest
 
-Plain `signet` and plain `regtest` are **not** BLSCT / PoPS chains in the current implementation (`fBLSCT = false`). For local BLSCT / PoPS development use `-blsctregtest`, which uses:
+Plain `regtest` is **not** a BLSCT / PoPS chain (`fBLSCT = false`), and neither was `signet` before v0.3.0. From v0.3.0 signet has `fBLSCT = true`, PoW up to height 1000, `nPosTargetSpacing = 60`, `nPosTargetTimespan = 1800`, a 4 NAV block reward, a 10,000 NAV minimum stake, and blocks that must be signed for `-signetchallenge` (see [Networks → Signet](networks.md#signet)). For local BLSCT / PoPS development use `-blsctregtest`, which uses:
 
 - `nPePoSMinStakeAmount = 100 * COIN`
 - `nPosTargetSpacing = 60`

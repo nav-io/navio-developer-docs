@@ -22,7 +22,7 @@ RPC reference: [P2P messaging commands](../rpc/p2pmsg.md) · How the message bus
 | **Standing order** | A maker's offer that keeps working **while the maker is offline**: a pre-signed half-transaction that other nodes cache and answer RFQs with on the maker's behalf. |
 | **uuid / quote_id** | Just receipts: the id of your RFQ, and the id of one particular quote answering it. |
 
-Amounts are in the smallest unit (like satoshis): `1 NAV = 100000000`. The empty string `""` means NAV itself; a token is identified by its 64-hex `tokenId`. On master (after v0.2.2) an NFT can be traded too: write it as `<tokenId>#<subid>`, for example `"$COLL#7"`, the form `listorders` prints.
+Amounts are in the smallest unit (like satoshis): `1 NAV = 100000000`. The empty string `""` means NAV itself; a token is identified by its 64-hex `tokenId`. From v0.3.0 an NFT can be traded too: write it as `<tokenId>#<subid>`, for example `"$COLL#7"`, the form `listorders` prints.
 
 ---
 
@@ -78,7 +78,7 @@ navio-cli -rpcwallet=taker requestquote "$TOKA" "" 50000000000 1893456000
 
 Returns a `uuid` — your RFQ's receipt. Behind the scenes the question is broadcast over the encrypted bus; every maker node hears it, and the bus's stem routing hides which node asked. Your node also mints a fresh one-time key, so makers' answers are readable by you alone and can't be linked to your wallet.
 
-Open RFQs: `listrfqs`. Changed your mind: `cancelrfq <uuid>`. On master, `cancelrfq` fails while one of the RFQ's quotes is being accepted, since that accept may still broadcast the swap. Retry once it finishes: a successful accept removes the RFQ itself, and a failed one makes it cancellable again.
+Open RFQs: `listrfqs`. Changed your mind: `cancelrfq <uuid>`. From v0.3.0, `cancelrfq` fails while one of the RFQ's quotes is being accepted, since that accept may still broadcast the swap. Retry once it finishes: a successful accept removes the RFQ itself, and a failed one makes it cancellable again.
 
 ### 3. Maker: answer with a quote
 
@@ -120,7 +120,9 @@ navio-cli -rpcwallet=taker gettokenbalance "$TOKA"   # tokens arrived
 navio-cli -rpcwallet=maker getblsctbalance           # NAV arrived
 ```
 
-On master, the taker's wallet records the swap as its own send as soon as it broadcasts, so its change is spendable right away. The tokens it receives are funded by the maker's inputs and stay untrusted pending until the swap confirms.
+From v0.3.0, the taker's wallet records the swap as its own send as soon as it broadcasts, so its change is spendable right away. The tokens it receives are funded by the maker's inputs and stay untrusted pending until the swap confirms. The maker's half funds the whole network fee, so the taker's `gettransaction` and `listtransactions` show the swap with `fee` 0 and `amount` equal to the full sell cost (v0.2.2 reported the maker-paid fee as the taker's own).
+
+`acceptquotewallet`, `broadcastorder` and `replyquote` no longer hang when the wallet's NAV inputs exactly cover what its half pays in NAV, fee included (v0.3.0). Such a half now pays the fee of a half with a change output, overpaying by one change output's weight.
 
 ---
 
@@ -138,7 +140,7 @@ navio-cli sendorder "<half_tx_hex>" "$TOKA" 50000000000 "" 5000000000 1893456000
 # anyone:
 navio-cli listorders             # cache state: order count and bytes
 navio-cli listorders true        # also list the cached orders
-navio-cli listorders true 50 100 # page through them (master): count 50, skip 100
+navio-cli listorders true 50 100 # page through them (v0.3.0+): count 50, skip 100
 ```
 
 `broadcastorder` takes amounts in coin units (`offer_amount`, `want_amount`), while `sendorder` takes smallest units. Both cap `expiry` at 14 days. The verbose list includes fields that are this node's own bookkeeping (`received`, `effective_expiry`); strip them before republishing the output.
