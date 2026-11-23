@@ -8,7 +8,7 @@ Current `navio-core` exposes five chain types: `main`, `test`, `signet`, `regtes
 | ------------ | --------------- | ------------ | ---------------- | ---------------- | --------- | ----------- |
 | mainnet      | (default)       | yes          | `48470`          | `48471`          | `nav`     | `bd5fc300`  |
 | testnet      | `-testnet`      | yes          | `33670`          | `33677`          | `tnv`     | `2467d2c1`  |
-| signet       | `-signet`       | no           | `38333`          | `48487`          | `nav` in core chainparams, but BLSCT is inactive | (per-signet) |
+| signet       | `-signet -signetchallenge=<hex>` | yes (v0.3.0+) | `48488` (v0.3.0+) | `48487`          | `snv` (v0.3.0+) | first 4 bytes of the serialized challenge's sha256d |
 | regtest      | `-regtest`      | no           | `18444`          | `48486`          | `rnv` in core chainparams, but BLSCT is inactive | `fdbf9ffb` |
 | blsctregtest | `-blsctregtest` | yes          | `18444`          | `48484`          | `rnv`     | `fdbf9ffb` |
 
@@ -23,10 +23,10 @@ Seeds are defined in [`src/kernel/chainparams.cpp`](https://github.com/nav-io/na
 | ------------ | ------------- | -------------------------------------------- |
 | mainnet      | `seed.nav.io` | `168.119.249.67:48470` (`blocks.nav.io`)     |
 | testnet      | none          | none                                         |
-| signet       | none (custom signets: `-signetseednode`) | none              |
+| signet       | none (`-signetseednode`) | none                                |
 | regtest / blsctregtest | none | none                                     |
 
-Testnet and the default signet have **no built-in seeds**: earlier builds still carried Bitcoin's testnet3 and signet seed lists, which only led to Bitcoin peers, and those were removed. Connect testnet nodes explicitly, for example:
+Testnet and signet have **no built-in seeds**: earlier builds still carried Bitcoin's testnet3 and signet seed lists, which only led to Bitcoin peers, and v0.3.0 removes them. Connect testnet nodes explicitly, for example:
 
 ```ini
 [test]
@@ -48,11 +48,32 @@ tnv1q9rh...long...q8u30w
 
 where:
 
--   **HRP** — `nav` (mainnet), `tnv` (testnet), `rnv` (`blsctregtest`)
+-   **HRP** — `nav` (mainnet), `tnv` (testnet), `snv` (signet, v0.3.0+), `rnv` (`blsctregtest`)
 -   **Witness version** — hidden inside the bech32m payload
 -   **Payload** — 96-byte encoded double public key
 
-If you use `navio-blsct` standalone instead of `naviod` chainparams, the library currently exposes `snv` and `rnav` for its Signet / Regtest enum values in `src/blsct/key_io.h`.
+`navio-blsct` used standalone takes the HRP from libblsct's `src/blsct/key_io.h`: `nav`, `tnv`, `snv` and `rnv` for its Mainnet, Testnet, Signet and Regtest chains. From v0.3.0 all four match `naviod`'s chainparams; before, `naviod`'s plain signet used `nav` and had BLSCT off.
+
+## Signet {#signet}
+
+!!! info "New in v0.3.0"
+    In v0.2.2 and earlier, `-signet` used Bitcoin's signet challenge, genesis block and seeds with BLSCT disabled, so it could only follow Bitcoin's signet.
+
+From v0.3.0, signet is a **BLSCT test network whose blocks must be signed** for the network's challenge script ([BIP 325](https://github.com/bitcoin/bips/blob/master/bip-0325.mediawiki)). Only the holders of the challenge keys can produce blocks, in the proof-of-work phase and in the proof-of-stake phase. It suits private multi-party test networks.
+
+-   **No default network.** There is no public Navio signet yet, so `-signet` requires `-signetchallenge=<script hex>`; without it `naviod` refuses to start ("There is no default signet network yet: set -signetchallenge to the challenge of the signet to join."). The challenge also sets the network magic, so nodes with different challenges cannot talk to each other.
+-   **Parameters.** Its own genesis block (shared by every signet; the challenge tells them apart), BLSCT and PoPS from genesis, proof-of-work blocks up to height 1000 and proof-of-stake after, 60-second PoS spacing, 4 NAV block reward, 10,000 NAV minimum stake, `snv` addresses, P2P port `48488`, RPC port `48487`, datadir `signet/`.
+-   **Signing.** The block signature commits to the block's version, previous hash, transactions and time. Mine the PoW phase with `generatetoblsctaddress <n> <address> <maxtries> <signetkey>` and stake with `navio-staker -signet -signetblockkey=<key>`; both take the private key as 32 bytes of hex. Put the staker's key in its config file rather than on the command line.
+-   **Peers.** Point the nodes at each other with `-addnode` or `-signetseednode`.
+-   **Transparent RPCs.** Signet is a BLSCT-only network, so the transparent RPCs listed under [BLSCT-only networks](../rpc/index.md#blsct-only-networks) are refused.
+
+```bash
+naviod -signet -signetchallenge=0014<hash160 of the signing pubkey> -addnode=<peer>
+navio-cli -signet generatetoblsctaddress 101 "$(navio-cli -signet getnewaddress)" 1000000 <key hex>
+navio-staker -signet -signetblockkey=<key hex>
+```
+
+A proof of stake needs a set of at least two staked commitments, so lock at least two stakes before starting the staker. The full walkthrough is `contrib/signet/README.md` in navio-core.
 
 ## Switching networks
 
@@ -68,8 +89,8 @@ naviod -blsctregtest
 # regtest
 naviod -regtest
 
-# signet
-naviod -signet
+# signet (v0.3.0+: requires the network's challenge)
+naviod -signet -signetchallenge=<challenge hex>
 
 # mainnet (default)
 naviod
@@ -103,6 +124,7 @@ Navio uses the inherited Bitcoin P2P wire protocol with distinct message-start b
 -   Testnet: `24 67 d2 c1`
 -   Mainnet: `bd 5f c3 00`
 -   Regtest / blsctregtest: `fd bf 9f fb`
+-   Signet: the first 4 bytes of the double-SHA256 of the serialized challenge script (as in BIP 325)
 
 The magic determines which messages a peer will accept. Explorer peer crawlers and custom P2P tooling must set the correct magic — see `P2P_MAINNET_MAGIC_HEX` / `P2P_TESTNET_MAGIC_HEX` in the [navio-blocks env vars](../explorer/self-host.md#environment-variables).
 
@@ -125,7 +147,7 @@ Mainnet lives at the datadir root. Subdirectories are currently `testnet7/`, `si
 | BLSCT integration tests, CI        | `blsctregtest`      |
 | Plain non-BLSCT local tests        | `regtest`           |
 | Pre-production manual testing      | `testnet`           |
-| Low-noise private multi-party nets | `signet`            |
+| Low-noise private multi-party nets | `signet` (v0.3.0+: BLSCT, signed blocks) |
 | Live transactions                  | `mainnet`           |
 
 See the [SDK quickstart](../sdk/quickstart.md) for the SDK's current regtest-based development loop. For chain-faithful local BLSCT / PoPS testing in `navio-core`, prefer `blsctregtest`.

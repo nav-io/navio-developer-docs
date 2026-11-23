@@ -69,7 +69,7 @@ Keep it running. It will:
 3.  Construct a `blsct::ProofOfStake` with the hidden stake amount and blinding factor.
 4.  Self-verify, then `submitblock`.
 
-The node builds the block body: on BLSCT chains it merges all selected mempool transactions into **one aggregate** (`[coinbase, aggregate]`), keeping chained unconfirmed sends intact (no cut-through). The template defers a transaction that spends a staked commitment created earlier in the same template, and drops colliding staked-commitment outputs instead of failing the template.
+The node builds the block body: on BLSCT chains it merges all selected mempool transactions into **one aggregate** (`[coinbase, aggregate]`), keeping chained unconfirmed sends intact (no cut-through). The template defers a transaction that spends a staked commitment created earlier in the same template, and drops colliding staked-commitment outputs instead of failing the template. From v0.3.0 the template also skips a package whose token predicates conflict with packages already chosen (for example two mints that together exceed a token's supply cap), and drops a transaction with a token-denominated fee (and any transaction spending its outputs) before merging, so neither can stop block production.
 
 Common wallet-mode flags (full list: `navio-staker -help` on your release):
 
@@ -81,14 +81,17 @@ Common wallet-mode flags (full list: `navio-staker -help` on your release):
 | `-autoconsolidate` / `-autoconsolidateinterval=<s>` | Periodically merge small outputs such as accumulated rewards (default off / 3600 s). |
 | `-rpcwait` / `-rpcwaittimeout=<s>`  | Wait for the node's RPC server at startup. |
 | `-delegationrefresh=<s>`            | In wallet mode, the longest wait between retries of a failing `listdelegations` lookup (default 300, capped at one day). |
+| `-signetblockkey=<hex>`             | Signet only, and required there (v0.3.0+): the private key, as 32 bytes of hex, that signs each staked block for the node's `-signetchallenge`. `navio-staker -signet` without it refuses to start ("signet only accepts signed blocks: set -signetblockkey"). |
 
-### Behaviour changes on master
+### Behaviour changes in v0.3.0 {#behaviour-changes-in-v030}
 
-The following `navio-staker` changes are merged on `master` and ship in the next release:
+The following `navio-staker` changes are new in v0.3.0:
 
 -   **Own delegated stakes pay their reward address.** A wallet-mode staker also stakes the wallet's own [delegated](cold-staking.md) stakes; a block produced with one of them now pays the delegation's reward address instead of `-coinbasedest`, so `listdelegations` reports `rewards_received` correctly. It falls back to `-coinbasedest` against a node whose `listdelegations` lacks the new `commitment` field, and calls `listdelegations` only when the wallet's staked commitments change.
 -   **Backoff when the node is unreachable.** Instead of logging every cycle, the staker logs `Lost connection to the node` once, retries after about 2 s, doubles the wait up to 60 s, and logs `Reconnected to the node after N failed attempt(s)`. The dashboard shows `waiting for node` and counts each failure under `RPC errors`.
 -   **Backoff on `listdelegations` failures.** Same doubling from 2 s up to `-delegationrefresh`; a change in staked commitments is retried immediately. While it fails, not-yet-looked-up delegated stakes pay `-coinbasedest`.
+-   **Commitments take turns.** Each cycle starts with the commitment after the one that produced the staker's last block, instead of always with the first in the list, so every stake that can produce a block gets its turn. Before, the first eligible commitment in the wallet's listing order produced every block. In `-delegated` mode the rewards, and the per-delegation counts in `-statsfile`, are spread across the delegations instead of going to the most confirmed one.
+-   **Signet.** On signet the staker signs every block with `-signetblockkey` before it builds the proof of stake.
 
 Flags: `navio-staker --help` on the binary matching your release.
 
@@ -118,7 +121,7 @@ filter for `category: "stake"`.
 
 ## PoPS on BLSCT chains
 
-On mainnet, testnet, and `blsctregtest`, the coinstake transaction does **not** reference a specific staked UTXO; `block.posProof` contains a set-membership proof + range proof that together show "one of these staked commitments is mine *and* my hidden stake satisfies the block's eligibility threshold" — without revealing which commitment or its amount. Plain `signet` and plain `regtest` do not use PoPS in the current chainparams. Protocol details: [BLSCT → PoPS](../blsct/pops.md).
+On mainnet, testnet, signet (v0.3.0+) and `blsctregtest`, the coinstake transaction does **not** reference a specific staked UTXO; `block.posProof` contains a set-membership proof + range proof that together show "one of these staked commitments is mine *and* my hidden stake satisfies the block's eligibility threshold" — without revealing which commitment or its amount. Plain `signet` and plain `regtest` do not use PoPS in the current chainparams. Protocol details: [BLSCT → PoPS](../blsct/pops.md).
 
 ## Cold staking
 

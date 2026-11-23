@@ -56,17 +56,22 @@ A node running an older consensus version than the rest of the network can rejec
 
 Wallet transactions confirmed only on the abandoned branch become unconfirmed again after the reorg; coinbase rewards minted on it disappear.
 
-## v0.2.x upgrade notes
+## v0.2.x and v0.3.0 upgrade notes {#v02x-upgrade-notes}
 
 -   **v0.2.0** was a mandatory consensus upgrade ("every node must update", per its release notes) and replaced the BLS backend (herumi/mcl → vendored supranational/blst; on-chain formats unchanged). Nodes on v0.1.x are not compatible with the current network.
 -   **v0.2.2** switched the p2pmsg overlay to envelope v2 (`NODE_P2PMSG_V2`). v0.2.1-and-older nodes speak envelope v1 and the two overlays do not exchange messages, so aggregation cover candidates, RFQ quotes and user messages only reach peers on v0.2.2 or later.
--   **Next release** (changes merged on `master`):
+-   **v0.3.0** (being prepared from `master`; not yet tagged):
     -   `-coinstatsindex` is wiped and rebuilt from genesis in the background on the first start, because coin hashing became canonical. A pruned node with `-coinstatsindex` must disable the index or `-reindex`. After a downgrade, delete `indexes/coinstats` (or `-reindex`) — and again after re-upgrading.
     -   If a node ever crashed or was killed while flushing the chainstate during token/NFT or staking activity, restart it once with `-reindex-chainstate` (pruned nodes: `-reindex`) to rebuild the token and staked-commitment sets.
     -   `-checkpoints` has no effect and logs a warning; remove it.
-    -   Testnet and the default signet no longer ship seeds; add `addnode=` lines.
+    -   Testnet no longer ships seeds; add `addnode=` lines.
+    -   Signet is now a BLSCT network with its own genesis block and P2P port 48488, and there is no default signet: `-signet` without `-signetchallenge` refuses to start. A signet datadir from an earlier release belongs to the old Bitcoin-style signet and cannot be reused. See [Networks → Signet](../concepts/networks.md#signet).
     -   `-whitelist` no longer applies to WebSocket (`-p2pwsbind`) peers.
     -   `-p2pmsgstoresize` is split into per-scope budgets; an inbox-only node that wants to keep as many messages as before needs a proportionally larger value.
+    -   A node that cannot reorganize past a block whose coinbase carries a token or NFT predicate depending on another transaction in the block (so `invalidateblock` on it or `verifychain -checklevel=3` fails) needs v0.3.0 to do so.
+    -   Scripts and integrations: `migratewallet` and the PSBT and external-signer RPCs are gone; `createwallet mnemonic_passphrase` and `navio-wallet -mnemonicpassphrase` are deprecated aliases of `seedphrase_extension` / `-seedphraseextension`; `scantxoutset` and `scanblocks` refuse BLSCT addresses; output-storage history rows of received payments and rewards have no `txid` (use `outid`). See [Removed RPCs](../rpc/index.md#removed-rpcs) and [Wallet RPC](../rpc/categories/wallet.md).
+    -   Relay policy: the mempool rejects BLSCT transactions with a non-native fee output or with no inputs, and spends whose input scripts make too many `OP_BLSCHECKSIG` calls. Block validity is unchanged. See [Mempool policy](../concepts/p2p-protocol.md#mempool-policy).
+    -   libblsct consumers: the C API takes explicit message lengths, a breaking signature change. See [libblsct C API changes](../blsct-lib/index.md#libblsct-c-api-changes-in-navio-core-v030).
 
 ## Upgrading across testnet resets
 
